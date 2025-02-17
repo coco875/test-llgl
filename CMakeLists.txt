@@ -16,13 +16,15 @@ file(GLOB_RECURSE ALL_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 
-FetchContent_Declare(
-    glfw
-    GIT_REPOSITORY https://github.com/glfw/glfw.git
-    GIT_TAG 3.4
-)
+# FetchContent_Declare(
+#     glfw
+#     GIT_REPOSITORY https://github.com/glfw/glfw.git
+#     GIT_TAG 3.4
+# )
 
-FetchContent_MakeAvailable(glfw)
+# FetchContent_MakeAvailable(glfw)
+
+find_package(glfw3 3.3 REQUIRED)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
 
