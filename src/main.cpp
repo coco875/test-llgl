@@ -11,6 +11,7 @@
 
 #include <SDL2/SDL_video.h>
 #include <SDL2/SDL_syswm.h>
+#include <GL/glx.h>
 
 
 class CustomSurface final : public LLGL::Surface {
@@ -53,9 +54,27 @@ bool CustomSurface::GetNativeHandle(void* nativeHandle, std::size_t nativeHandle
     SDL_SysWMinfo wmInfo;
     SDL_VERSION(&wmInfo.version);
     SDL_GetWindowWMInfo(wnd_, &wmInfo);
+    int framebufferAttribs[] =
+        {
+            GLX_DOUBLEBUFFER,   True,
+            GLX_X_RENDERABLE,   True,
+            GLX_DRAWABLE_TYPE,  GLX_WINDOW_BIT,
+            GLX_RENDER_TYPE,    GLX_RGBA_BIT,
+            GLX_X_VISUAL_TYPE,  GLX_TRUE_COLOR,
+            GLX_RED_SIZE,       8,
+            GLX_GREEN_SIZE,     8,
+            GLX_BLUE_SIZE,      8,
+            GLX_ALPHA_SIZE,     8,
+            GLX_DEPTH_SIZE,     24,
+            GLX_STENCIL_SIZE,   8,
+            GLX_SAMPLE_BUFFERS, 1,
+            GLX_SAMPLES,        1,
+            None
+        };
     auto* nativeHandlePtr = static_cast<LLGL::NativeHandle*>(nativeHandle);
     nativeHandlePtr->display = wmInfo.info.x11.display;
     nativeHandlePtr->window = wmInfo.info.x11.window;
+    nativeHandlePtr->visual = glXChooseVisual(wmInfo.info.x11.display, 0, framebufferAttribs);
     return true;
 }
 
@@ -89,6 +108,10 @@ int main() {
     // Init SDL
     SDL_Init(SDL_INIT_VIDEO);
     SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11");
+
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     
     // Init LLGL
     LLGL::RenderSystemPtr llgl_renderer;
@@ -112,6 +135,7 @@ int main() {
 
     LLGL::SwapChainDescriptor swapChainDesc;
     swapChainDesc.resolution = { window_width, window_height };
+    swapChainDesc.samples = 4;
     auto surface = std::make_shared<CustomSurface>(swapChainDesc.resolution, "LLGL SwapChain");
     LLGL::SwapChain* llgl_swapChain = llgl_renderer->CreateSwapChain(swapChainDesc, surface);
 

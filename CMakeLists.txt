@@ -14,6 +14,9 @@ file(GLOB_RECURSE ALL_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     "src/*.cpp"
 )
 
+add_compile_options(-lglut -lGL -lGLEW -lGLU -lglx)
+add_link_options( -lGL -lGLEW -lGLU )
+
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 
 find_package(SDL2 REQUIRED)
