@@ -16,10 +16,20 @@ file(GLOB_RECURSE ALL_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 
-find_package(SDL2 REQUIRED)
+FetchContent_Declare(
+    glfw
+    GIT_REPOSITORY https://github.com/glfw/glfw.git
+    GIT_TAG 3.4
+)
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL2_LIBRARIES})
+FetchContent_MakeAvailable(glfw)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
+
+# find_package(SDL2 REQUIRED)
+
+# target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_INCLUDE_DIRS})
+# target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL2_LIBRARIES})
 
 # Add the LLGL library
 set(LLGL_BUILD_EXAMPLES OFF)
