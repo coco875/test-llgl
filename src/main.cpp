@@ -12,7 +12,7 @@
 #include <SDL2/SDL_video.h>
 #include <SDL2/SDL_syswm.h>
 #include <GL/glx.h>
-
+#include <LLGL/Backend/OpenGL/NativeHandle.h>
 
 class CustomSurface final : public LLGL::Surface {
     public:
@@ -101,6 +101,7 @@ int main() {
 
     LLGL::SwapChainDescriptor swapChainDesc;
     swapChainDesc.resolution = { window_width, window_height };
+    swapChainDesc.samples = 4;
     auto surface = std::make_shared<CustomSurface>(swapChainDesc.resolution, "LLGL SwapChain");
 
     SDL_GL_GetDrawableSize(surface->wnd, (int*) &window_width, (int*) &window_height);
@@ -113,8 +114,9 @@ int main() {
     LLGL::RenderSystemPtr llgl_renderer;
     LLGL::Report report;
     LLGL::RenderSystemDescriptor desc = {"OpenGL"};
-    desc.nativeHandle = ctx;
-    desc.nativeHandleSize = sizeof(GLXContext);
+    auto handle = LLGL::OpenGL::RenderSystemNativeHandle{(GLXContext) ctx};
+    desc.nativeHandle = (void*)&handle;
+    desc.nativeHandleSize = sizeof(LLGL::OpenGL::RenderSystemNativeHandle);
     llgl_renderer = LLGL::RenderSystem::Load("OpenGL", &report);
     
     // Create SDL window and LLGL swap-chain
