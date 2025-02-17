@@ -1,6 +1,8 @@
 // LLGL/SDL Test
 // 2/16/25
 
+#include <iostream>
+
 #include <LLGL/LLGL.h>
 #include <LLGL/Platform/NativeHandle.h>
 #include <GLFW/glfw3.h>
@@ -160,8 +162,14 @@ LLGL::Display* CustomSurface::FindResidentDisplay() const {
 	return nullptr;
 }
 
+static void glfwError(int id, const char* description)
+{
+  std::cout << description << std::endl;
+}
+
 int main() {
-    setenv("SDL_VIDEODRIVER", "x11", 1);
+    glfwSetErrorCallback(&glfwError);
+    glfwInit();
     LLGL::Log::RegisterCallbackStd();
     LLGL::Log::Printf("Load: OpenGL\n");
     
