@@ -29,10 +29,10 @@ class CustomSurface final : public LLGL::Surface {
         // Additional class functions
         static bool PollEvents();
     
+        SDL_Window*     wnd = nullptr;
     private:
         std::string     title_;
         LLGL::Extent2D  size_;
-        SDL_Window*     wnd_ = nullptr;
 };
 
 CustomSurface::CustomSurface(const LLGL::Extent2D& size, const char* title) :
@@ -40,8 +40,8 @@ CustomSurface::CustomSurface(const LLGL::Extent2D& size, const char* title) :
 	size_  { size               }
 {
     Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_OPENGL;
-    wnd_ = SDL_CreateWindow(title, 400, 200, (int)size.width, (int)size.height, flags);
-    if (wnd_ == nullptr) {
+    wnd = SDL_CreateWindow(title, 400, 200, (int)size.width, (int)size.height, flags);
+    if (wnd == nullptr) {
         LLGL::Log::Errorf("Failed to create SDL2 window\n");
         exit(1);
     }
@@ -53,28 +53,10 @@ CustomSurface::~CustomSurface() {
 bool CustomSurface::GetNativeHandle(void* nativeHandle, std::size_t nativeHandleSize) {
     SDL_SysWMinfo wmInfo;
     SDL_VERSION(&wmInfo.version);
-    SDL_GetWindowWMInfo(wnd_, &wmInfo);
-    int framebufferAttribs[] =
-        {
-            GLX_DOUBLEBUFFER,   True,
-            GLX_X_RENDERABLE,   True,
-            GLX_DRAWABLE_TYPE,  GLX_WINDOW_BIT,
-            GLX_RENDER_TYPE,    GLX_RGBA_BIT,
-            GLX_X_VISUAL_TYPE,  GLX_TRUE_COLOR,
-            GLX_RED_SIZE,       8,
-            GLX_GREEN_SIZE,     8,
-            GLX_BLUE_SIZE,      8,
-            GLX_ALPHA_SIZE,     8,
-            GLX_DEPTH_SIZE,     24,
-            GLX_STENCIL_SIZE,   8,
-            GLX_SAMPLE_BUFFERS, 1,
-            GLX_SAMPLES,        1,
-            None
-        };
+    SDL_GetWindowWMInfo(wnd, &wmInfo);
     auto* nativeHandlePtr = static_cast<LLGL::NativeHandle*>(nativeHandle);
     nativeHandlePtr->display = wmInfo.info.x11.display;
     nativeHandlePtr->window = wmInfo.info.x11.window;
-    nativeHandlePtr->visual = glXChooseVisual(wmInfo.info.x11.display, 0, framebufferAttribs);
     return true;
 }
 
@@ -112,10 +94,27 @@ int main() {
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+
+    
+    const uint32_t window_width = 800;
+    const uint32_t window_height = 600;
+
+    LLGL::SwapChainDescriptor swapChainDesc;
+    swapChainDesc.resolution = { window_width, window_height };
+    auto surface = std::make_shared<CustomSurface>(swapChainDesc.resolution, "LLGL SwapChain");
+
+    SDL_GL_GetDrawableSize(surface->wnd, (int*) &window_width, (int*) &window_height);
+
+    SDL_GLContext ctx = SDL_GL_CreateContext(surface->wnd);
+
+    SDL_GL_MakeCurrent(surface->wnd, ctx);
     
     // Init LLGL
     LLGL::RenderSystemPtr llgl_renderer;
     LLGL::Report report;
+    LLGL::RenderSystemDescriptor desc = {"OpenGL"};
+    desc.nativeHandle = ctx;
+    desc.nativeHandleSize = sizeof(GLXContext);
     llgl_renderer = LLGL::RenderSystem::Load("OpenGL", &report);
     
     // Create SDL window and LLGL swap-chain
@@ -129,14 +128,8 @@ int main() {
             return 1;
         }
     }
-    
-    const uint32_t window_width = 800;
-    const uint32_t window_height = 600;
 
-    LLGL::SwapChainDescriptor swapChainDesc;
-    swapChainDesc.resolution = { window_width, window_height };
-    swapChainDesc.samples = 4;
-    auto surface = std::make_shared<CustomSurface>(swapChainDesc.resolution, "LLGL SwapChain");
+    // swapChainDesc.samples = 4;
     LLGL::SwapChain* llgl_swapChain = llgl_renderer->CreateSwapChain(swapChainDesc, surface);
 
     LLGL::CommandBuffer* llgl_cmdBuffer = llgl_renderer->CreateCommandBuffer(LLGL::CommandBufferFlags::ImmediateSubmit);
