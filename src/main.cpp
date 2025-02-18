@@ -1,6 +1,8 @@
 // LLGL/SDL Test
 // 2/16/25
 
+#include <memory>
+
 #include <LLGL/LLGL.h>
 #include <LLGL/Platform/NativeHandle.h>
 
@@ -31,19 +33,16 @@ class CustomSurface final : public LLGL::Surface {
         LLGL::Extent2D GetContentSize() const override;
         bool AdaptForVideoMode(LLGL::Extent2D* resolution, bool* fullscreen) override;
         LLGL::Display* FindResidentDisplay() const override;
-        
-        // Additional class functions
-        static bool PollEvents();
     
         SDL_Window*     wnd = nullptr;
+        LLGL::Extent2D  size;
     private:
         std::string     title_;
-        LLGL::Extent2D  size_;
 };
 
 CustomSurface::CustomSurface(const LLGL::Extent2D& size, const char* title) :
 	title_ { title              },
-	size_  { size               }
+	size  { size               }
 {
     Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_OPENGL;
     wnd = SDL_CreateWindow(title, 400, 200, (int)size.width, (int)size.height, flags);
@@ -71,7 +70,7 @@ bool CustomSurface::GetNativeHandle(void* nativeHandle, std::size_t nativeHandle
 }
 
 LLGL::Extent2D CustomSurface::GetContentSize() const {
-    return size_;
+    return size;
 }
 
 bool CustomSurface::AdaptForVideoMode(LLGL::Extent2D* resolution, bool* fullscreen) {
@@ -82,11 +81,17 @@ LLGL::Display* CustomSurface::FindResidentDisplay() const {
     return nullptr;
 }
 
-bool CustomSurface::PollEvents(){
+bool PollEvents(LLGL::SwapChain* llgl_swapChain, std::shared_ptr<CustomSurface> surface) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
             return false;
+        }
+        if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_RESIZED) {
+            uint32_t width = event.window.data1;
+            uint32_t height = event.window.data2;
+            surface->size = { width, height };
+            llgl_swapChain->ResizeBuffers(surface->size);
         }
         ImGui_ImplSDL2_ProcessEvent(&event);
     }
@@ -99,7 +104,7 @@ static void InitImGui(CustomSurface& wnd)
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_ViewportsEnable;
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -154,8 +159,6 @@ int main() {
     SDL_GLContext ctx = SDL_GL_CreateContext(surface->wnd);
 
     SDL_GL_MakeCurrent(surface->wnd, ctx);
-
-    InitImGui(*surface);
     
     // Init LLGL
     LLGL::RenderSystemPtr llgl_renderer;
@@ -165,8 +168,11 @@ int main() {
     auto handle = LLGL::OpenGL::RenderSystemNativeHandle{(GLXContext) ctx};
     desc.nativeHandle = (void*)&handle;
     desc.nativeHandleSize = sizeof(LLGL::OpenGL::RenderSystemNativeHandle);
+#else
+    desc.nativeHandle = ctx;
+    desc.nativeHandleSize = sizeof(void*);
 #endif
-    llgl_renderer = LLGL::RenderSystem::Load("OpenGL", &report);
+    llgl_renderer = LLGL::RenderSystem::Load(desc, &report);
     
     // Create SDL window and LLGL swap-chain
     if (!llgl_renderer)     {
@@ -184,8 +190,10 @@ int main() {
     LLGL::SwapChain* llgl_swapChain = llgl_renderer->CreateSwapChain(swapChainDesc, surface);
 
     LLGL::CommandBuffer* llgl_cmdBuffer = llgl_renderer->CreateCommandBuffer(LLGL::CommandBufferFlags::ImmediateSubmit);
+
+    InitImGui(*surface);
     
-    while (CustomSurface::PollEvents()) {
+    while (PollEvents(llgl_swapChain, surface)) {
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
@@ -204,6 +212,14 @@ int main() {
                 // GUI Rendering
                 ImGui::Render();
                 ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+                SDL_Window* backupCurrentWindow = SDL_GL_GetCurrentWindow();
+                SDL_GLContext backupCurrentContext = SDL_GL_GetCurrentContext();
+
+                ImGui::UpdatePlatformWindows();
+                ImGui::RenderPlatformWindowsDefault();
+
+                SDL_GL_MakeCurrent(backupCurrentWindow, backupCurrentContext);
             }
             llgl_cmdBuffer->EndRenderPass();
         }
