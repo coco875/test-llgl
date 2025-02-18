@@ -22,10 +22,14 @@
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
 
+LLGL::RenderSystemPtr llgl_renderer;
+LLGL::SwapChain* llgl_swapChain;
+LLGL::CommandBuffer* llgl_cmdBuffer;
+
 class CustomSurface final : public LLGL::Surface {
     public:
         // Constructor and destructor
-        CustomSurface(const LLGL::Extent2D& size, const char* title);
+        CustomSurface(const LLGL::Extent2D& size, const char* title, int rendererID);
         ~CustomSurface();
         
         // Interface implementation
@@ -40,11 +44,24 @@ class CustomSurface final : public LLGL::Surface {
         std::string     title_;
 };
 
-CustomSurface::CustomSurface(const LLGL::Extent2D& size, const char* title) :
+CustomSurface::CustomSurface(const LLGL::Extent2D& size, const char* title, int rendererID) :
 	title_ { title              },
 	size  { size               }
-{
-    Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_OPENGL;
+{   
+    Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
+    switch (rendererID) {
+        case LLGL::RendererID::OpenGL:
+            flags |= SDL_WINDOW_OPENGL;
+            break;
+        case LLGL::RendererID::OpenGLES:
+            flags |= SDL_WINDOW_OPENGL;
+            break;
+        case LLGL::RendererID::Metal:
+            flags |= SDL_WINDOW_METAL;
+            break;
+        default:
+            break;
+    }
     wnd = SDL_CreateWindow(title, 400, 200, (int)size.width, (int)size.height, flags);
     if (wnd == nullptr) {
         LLGL::Log::Errorf("Failed to create SDL2 window\n");
@@ -81,7 +98,7 @@ LLGL::Display* CustomSurface::FindResidentDisplay() const {
     return nullptr;
 }
 
-bool PollEvents(LLGL::SwapChain* llgl_swapChain, std::shared_ptr<CustomSurface> surface) {
+bool PollEvents(std::shared_ptr<CustomSurface> surface) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
@@ -104,27 +121,51 @@ static void InitImGui(CustomSurface& wnd)
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_ViewportsEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // | ImGuiConfigFlags_ViewportsEnable;
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
 
-    ImGui_ImplSDL2_InitForOpenGL(wnd.wnd, nullptr);
+    void* ctx = nullptr;
 
-    // Setup renderer backend
+    switch (auto a = llgl_renderer->GetRendererID()) {
+        case LLGL::RendererID::OpenGL:
+                ImGui_ImplSDL2_InitForOpenGL(wnd.wnd, ctx);
+                // Setup renderer backend
 #ifdef __APPLE__
-    ImGui_ImplOpenGL3_Init("#version 410 core");
-#elif USE_OPENGLES
-    ImGui_ImplOpenGL3_Init("#version 300 es");
+                ImGui_ImplOpenGL3_Init("#version 410 core");
 #else
-    ImGui_ImplOpenGL3_Init("#version 120");
+                ImGui_ImplOpenGL3_Init("#version 120");
 #endif
+            break;
+        case LLGL::RendererID::OpenGLES:
+            ImGui_ImplSDL2_InitForOpenGL(wnd.wnd, ctx);
+            ImGui_ImplOpenGL3_Init("#version 300 es");
+            break;
+        case LLGL::RendererID::Metal:
+            ImGui_ImplSDL2_InitForMetal(wnd.wnd);
+            break;
+        default:
+            io.BackendRendererName = "imgui_impl_null";
+            break;
+    }
 }
 
 static void ShutdownImGui()
 {
     // Shutdown ImGui
-    ImGui_ImplOpenGL3_Shutdown();
+    switch (llgl_renderer->GetRendererID()) {
+        case LLGL::RendererID::OpenGL:
+            ImGui_ImplOpenGL3_Shutdown();
+            break;
+        case LLGL::RendererID::OpenGLES:
+            ImGui_ImplOpenGL3_Shutdown();
+            break;
+        case LLGL::RendererID::Metal:
+            break;
+        default:
+            break;
+    }
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
 }
@@ -146,9 +187,30 @@ static void RenderImGui()
     }
 }
 
+static void NewFrameImGui()
+{
+    switch (llgl_renderer->GetRendererID()) {
+        case LLGL::RendererID::OpenGL:
+            ImGui_ImplOpenGL3_NewFrame();
+            break;
+        case LLGL::RendererID::OpenGLES:
+            ImGui_ImplOpenGL3_NewFrame();
+            break;
+        case LLGL::RendererID::Metal:
+            // ImGui_ImplMetal_NewFrame();
+            break;
+        default:
+            break;
+    }
+    ImGui_ImplSDL2_NewFrame();
+    ImGui::NewFrame();
+}
+
 int main() {
     LLGL::Log::RegisterCallbackStd();
     LLGL::Log::Printf("Load: OpenGL\n");
+
+    bool useOpenGL = true;
     
     // Init SDL
     SDL_Init(SDL_INIT_VIDEO);
@@ -169,26 +231,29 @@ int main() {
     LLGL::SwapChainDescriptor swapChainDesc;
     swapChainDesc.resolution = { window_width, window_height };
     swapChainDesc.samples = 4;
-    auto surface = std::make_shared<CustomSurface>(swapChainDesc.resolution, "LLGL SwapChain");
+    auto surface = std::make_shared<CustomSurface>(swapChainDesc.resolution, "LLGL SwapChain", LLGL::RendererID::OpenGL);
+    LLGL::RenderSystemDescriptor desc;
+    if (useOpenGL) {
+        SDL_GL_GetDrawableSize(surface->wnd, (int*) &window_width, (int*) &window_height);
 
-    SDL_GL_GetDrawableSize(surface->wnd, (int*) &window_width, (int*) &window_height);
+        SDL_GLContext ctx = SDL_GL_CreateContext(surface->wnd);
 
-    SDL_GLContext ctx = SDL_GL_CreateContext(surface->wnd);
-
-    SDL_GL_MakeCurrent(surface->wnd, ctx);
-    
-    // Init LLGL
-    LLGL::RenderSystemPtr llgl_renderer;
-    LLGL::Report report;
-    LLGL::RenderSystemDescriptor desc = {"OpenGL"};
+        SDL_GL_MakeCurrent(surface->wnd, ctx);
+        
+        // Init LLGL
+        desc = {"OpenGL"};
 #ifndef __APPLE__
-    auto handle = LLGL::OpenGL::RenderSystemNativeHandle{(GLXContext) ctx};
-    desc.nativeHandle = (void*)&handle;
-    desc.nativeHandleSize = sizeof(LLGL::OpenGL::RenderSystemNativeHandle);
+        auto handle = LLGL::OpenGL::RenderSystemNativeHandle{(GLXContext) ctx};
+        desc.nativeHandle = (void*)&handle;
+        desc.nativeHandleSize = sizeof(LLGL::OpenGL::RenderSystemNativeHandle);
 #else
-    desc.nativeHandle = ctx;
-    desc.nativeHandleSize = sizeof(void*);
+        desc.nativeHandle = ctx;
+        desc.nativeHandleSize = sizeof(void*);
 #endif
+    } else {
+        desc = {"Metal"};
+    }
+    LLGL::Report report;
     llgl_renderer = LLGL::RenderSystem::Load(desc, &report);
     
     // Create SDL window and LLGL swap-chain
@@ -203,18 +268,16 @@ int main() {
         }
     }
 
-    // swapChainDesc.samples = 4;
-    LLGL::SwapChain* llgl_swapChain = llgl_renderer->CreateSwapChain(swapChainDesc, surface);
+    swapChainDesc.samples = 4;
+    llgl_swapChain = llgl_renderer->CreateSwapChain(swapChainDesc, surface);
 
-    LLGL::CommandBuffer* llgl_cmdBuffer = llgl_renderer->CreateCommandBuffer(LLGL::CommandBufferFlags::ImmediateSubmit);
+    llgl_cmdBuffer = llgl_renderer->CreateCommandBuffer(LLGL::CommandBufferFlags::ImmediateSubmit);
 
     InitImGui(*surface);
     
-    while (PollEvents(llgl_swapChain, surface)) {
+    while (PollEvents(surface)) {
         // Start the Dear ImGui frame
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplSDL2_NewFrame();
-        ImGui::NewFrame();
+        NewFrameImGui();
 
         // Show ImGui's demo window
         ImGui::ShowDemoWindow();
@@ -237,8 +300,8 @@ int main() {
         llgl_swapChain->Present();
     }
     
-    LLGL::RenderSystem::Unload(std::move(llgl_renderer));
     ShutdownImGui();
+    LLGL::RenderSystem::Unload(std::move(llgl_renderer));
     SDL_Quit();
     
     return 0;
