@@ -129,6 +129,23 @@ static void ShutdownImGui()
     ImGui::DestroyContext();
 }
 
+static void RenderImGui()
+{
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    ImGuiIO& io = ImGui::GetIO();
+
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        SDL_Window* backupCurrentWindow = SDL_GL_GetCurrentWindow();
+        SDL_GLContext backupCurrentContext = SDL_GL_GetCurrentContext();
+
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+
+        SDL_GL_MakeCurrent(backupCurrentWindow, backupCurrentContext);
+    }
+}
+
 int main() {
     LLGL::Log::RegisterCallbackStd();
     LLGL::Log::Printf("Load: OpenGL\n");
@@ -210,16 +227,7 @@ int main() {
                 llgl_cmdBuffer->Clear(LLGL::ClearFlags::Color, LLGL::ClearValue{ 0.0f, 0.0f, 0.0f, 1.0f });
 
                 // GUI Rendering
-                ImGui::Render();
-                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-                SDL_Window* backupCurrentWindow = SDL_GL_GetCurrentWindow();
-                SDL_GLContext backupCurrentContext = SDL_GL_GetCurrentContext();
-
-                ImGui::UpdatePlatformWindows();
-                ImGui::RenderPlatformWindowsDefault();
-
-                SDL_GL_MakeCurrent(backupCurrentWindow, backupCurrentContext);
+                RenderImGui();
             }
             llgl_cmdBuffer->EndRenderPass();
         }
