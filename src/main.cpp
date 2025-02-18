@@ -7,12 +7,18 @@
 #include <SDL2/SDL.h>
 
 #define GL_GLEXT_PROTOTYPES 1
-#include <SDL2/SDL_opengles2.h>
+#include <SDL2/SDL_opengl.h>
 
 #include <SDL2/SDL_video.h>
 #include <SDL2/SDL_syswm.h>
+#ifndef __APPLE__
 #include <GL/glx.h>
+#endif
 #include <LLGL/Backend/OpenGL/NativeHandle.h>
+
+#include "imgui.h"
+#include "imgui_impl_sdl2.h"
+#include "imgui_impl_opengl3.h"
 
 class CustomSurface final : public LLGL::Surface {
     public:
@@ -55,8 +61,12 @@ bool CustomSurface::GetNativeHandle(void* nativeHandle, std::size_t nativeHandle
     SDL_VERSION(&wmInfo.version);
     SDL_GetWindowWMInfo(wnd, &wmInfo);
     auto* nativeHandlePtr = static_cast<LLGL::NativeHandle*>(nativeHandle);
+#ifdef __APPLE__
+    nativeHandlePtr->responder = wmInfo.info.cocoa.window;
+#else
     nativeHandlePtr->display = wmInfo.info.x11.display;
     nativeHandlePtr->window = wmInfo.info.x11.window;
+#endif
     return true;
 }
 
@@ -78,18 +88,53 @@ bool CustomSurface::PollEvents(){
         if (event.type == SDL_QUIT) {
             return false;
         }
+        ImGui_ImplSDL2_ProcessEvent(&event);
     }
     return true;
 }
 
+static void InitImGui(CustomSurface& wnd)
+{
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+
+    ImGui_ImplSDL2_InitForOpenGL(wnd.wnd, nullptr);
+
+    // Setup renderer backend
+#ifdef __APPLE__
+    ImGui_ImplOpenGL3_Init("#version 410 core");
+#elif USE_OPENGLES
+    ImGui_ImplOpenGL3_Init("#version 300 es");
+#else
+    ImGui_ImplOpenGL3_Init("#version 120");
+#endif
+}
+
+static void ShutdownImGui()
+{
+    // Shutdown ImGui
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
+}
+
 int main() {
-    setenv("SDL_VIDEODRIVER", "x11", 1);
     LLGL::Log::RegisterCallbackStd();
     LLGL::Log::Printf("Load: OpenGL\n");
     
     // Init SDL
     SDL_Init(SDL_INIT_VIDEO);
+
+#ifndef __APPLE__
+    setenv("SDL_VIDEODRIVER", "x11", 1);
     SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11");
+#endif
 
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
@@ -109,14 +154,18 @@ int main() {
     SDL_GLContext ctx = SDL_GL_CreateContext(surface->wnd);
 
     SDL_GL_MakeCurrent(surface->wnd, ctx);
+
+    InitImGui(*surface);
     
     // Init LLGL
     LLGL::RenderSystemPtr llgl_renderer;
     LLGL::Report report;
     LLGL::RenderSystemDescriptor desc = {"OpenGL"};
+#ifndef __APPLE__
     auto handle = LLGL::OpenGL::RenderSystemNativeHandle{(GLXContext) ctx};
     desc.nativeHandle = (void*)&handle;
     desc.nativeHandleSize = sizeof(LLGL::OpenGL::RenderSystemNativeHandle);
+#endif
     llgl_renderer = LLGL::RenderSystem::Load("OpenGL", &report);
     
     // Create SDL window and LLGL swap-chain
@@ -137,17 +186,35 @@ int main() {
     LLGL::CommandBuffer* llgl_cmdBuffer = llgl_renderer->CreateCommandBuffer(LLGL::CommandBufferFlags::ImmediateSubmit);
     
     while (CustomSurface::PollEvents()) {
-        // Clear background
+        // Start the Dear ImGui frame
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplSDL2_NewFrame();
+        ImGui::NewFrame();
+
+        // Show ImGui's demo window
+        ImGui::ShowDemoWindow();
+
+        // Rendering
         llgl_cmdBuffer->Begin();
-        llgl_cmdBuffer->BeginRenderPass(*llgl_swapChain);
-        llgl_cmdBuffer->Clear(LLGL::ClearFlags::Color, LLGL::ClearValue{ 0.2f, 0.2f, 0.4f, 1.0f });
-        llgl_cmdBuffer->EndRenderPass();
+        {
+            llgl_cmdBuffer->BeginRenderPass(*llgl_swapChain);
+            {
+                llgl_cmdBuffer->Clear(LLGL::ClearFlags::Color, LLGL::ClearValue{ 0.0f, 0.0f, 0.0f, 1.0f });
+
+                // GUI Rendering
+                ImGui::Render();
+                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            }
+            llgl_cmdBuffer->EndRenderPass();
+        }
         llgl_cmdBuffer->End();
+
+        // Present result on screen
         llgl_swapChain->Present();
     }
     
     LLGL::RenderSystem::Unload(std::move(llgl_renderer));
-    
+    ShutdownImGui();
     SDL_Quit();
     
     return 0;

@@ -14,8 +14,8 @@ file(GLOB_RECURSE ALL_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     "src/*.cpp"
 )
 
-add_compile_options(-lglut -lGL -lGLEW -lGLU -lglx)
-add_link_options( -lGL -lGLEW -lGLU )
+# add_compile_options(-lglut -lGL -lGLEW -lGLU -lglx)
+# add_link_options( -lGL -lGLEW -lGLU )
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 
@@ -48,3 +48,36 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(llgl)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE LLGL)
+
+#=================== ImGui ===================
+FetchContent_Declare(
+    ImGui
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+    GIT_TAG v1.91.6-docking
+)
+FetchContent_MakeAvailable(ImGui)
+target_include_directories(${PROJECT_NAME} PRIVATE ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
+
+add_library(ImGui STATIC)
+set_property(TARGET ImGui PROPERTY CXX_STANDARD 20)
+
+target_sources(ImGui
+    PRIVATE
+    ${imgui_SOURCE_DIR}/imgui_demo.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/imgui.cpp
+)
+
+target_sources(ImGui
+    PRIVATE
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
+)
+
+target_include_directories(ImGui PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends PRIVATE ${SDL2_INCLUDE_DIRS})
+
+target_link_libraries(ImGui PUBLIC SDL2::SDL2)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC ImGui)
