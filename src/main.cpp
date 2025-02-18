@@ -117,7 +117,7 @@ int main() {
     auto handle = LLGL::OpenGL::RenderSystemNativeHandle{(GLXContext) ctx};
     desc.nativeHandle = (void*)&handle;
     desc.nativeHandleSize = sizeof(LLGL::OpenGL::RenderSystemNativeHandle);
-    llgl_renderer = LLGL::RenderSystem::Load("OpenGL", &report);
+    llgl_renderer = LLGL::RenderSystem::Load(desc, &report);
     
     // Create SDL window and LLGL swap-chain
     if (!llgl_renderer)     {
