@@ -19,7 +19,17 @@ file(GLOB_RECURSE ALL_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 
-find_package(SDL2 REQUIRED)
+#=================== SDL2 ===================
+find_package(SDL2 QUIET)
+if (NOT ${SDL2_FOUND})
+    FetchContent_Declare(
+        SDL2
+        GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+        GIT_TAG release-2.28.1
+        OVERRIDE_FIND_PACKAGE
+    )
+    FetchContent_MakeAvailable(SDL2)
+endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL2_LIBRARIES})
@@ -42,12 +52,13 @@ set(llgl_apply_patch_if_needed git apply ${llgl_patch_file} ${git_hide_output} |
 FetchContent_Declare(
     llgl
     GIT_REPOSITORY https://github.com/LukasBanana/LLGL.git
-    GIT_TAG 3df9f9c9eb707d2c0cfedf9a9a26371a7cce91cb
+    GIT_TAG 918bc0596e82e8376a4cac8f7d0c4ce5cd9fbd90
     PATCH_COMMAND ${llgl_apply_patch_if_needed}
 )
 FetchContent_MakeAvailable(llgl)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE LLGL)
+target_include_directories(${PROJECT_NAME} PRIVATE ${llgl_SOURCE_DIR})
 
 #=================== ImGui ===================
 FetchContent_Declare(
@@ -81,3 +92,7 @@ target_include_directories(ImGui PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/
 target_link_libraries(ImGui PUBLIC SDL2::SDL2)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ImGui)
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    include(cmake/mac.cmake)
+endif()

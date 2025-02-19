@@ -17,10 +17,16 @@
 #include <GL/glx.h>
 #endif
 #include <LLGL/Backend/OpenGL/NativeHandle.h>
+#ifdef __APPLE__
+#include <LLGL/Backend/Metal/NativeHandle.h>
+#endif
 
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
+#ifdef __APPLE__
+#include "imgui_impl_metal.h"
+#endif
 
 LLGL::RenderSystemPtr llgl_renderer;
 LLGL::SwapChain* llgl_swapChain;
@@ -162,6 +168,7 @@ static void ShutdownImGui()
             ImGui_ImplOpenGL3_Shutdown();
             break;
         case LLGL::RendererID::Metal:
+            // ImGui_ImplMetal_Shutdown();
             break;
         default:
             break;
@@ -173,17 +180,39 @@ static void ShutdownImGui()
 static void RenderImGui()
 {
     ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    switch (llgl_renderer->GetRendererID()) {
+        case LLGL::RendererID::OpenGL:
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            break;
+        case LLGL::RendererID::OpenGLES:
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            break;
+#ifdef __APPLE__
+        case LLGL::RendererID::Metal:
+            LLGL::Metal::CommandBufferNativeHandle cmdBuffer;
+            llgl_cmdBuffer->GetNativeHandle(&cmdBuffer, sizeof(LLGL::Metal::CommandBufferNativeHandle));
+
+            ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), (MTL::CommandBuffer *) cmdBuffer.commandBuffer, nullptr);
+            break;
+#endif
+        default:
+            break;
+    }
     ImGuiIO& io = ImGui::GetIO();
 
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-        SDL_Window* backupCurrentWindow = SDL_GL_GetCurrentWindow();
-        SDL_GLContext backupCurrentContext = SDL_GL_GetCurrentContext();
+        if (llgl_renderer->GetRendererID() == LLGL::RendererID::OpenGL || llgl_renderer->GetRendererID() == LLGL::RendererID::OpenGLES) {
+            SDL_Window* backupCurrentWindow = SDL_GL_GetCurrentWindow();
+            SDL_GLContext backupCurrentContext = SDL_GL_GetCurrentContext();
 
-        ImGui::UpdatePlatformWindows();
-        ImGui::RenderPlatformWindowsDefault();
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
 
-        SDL_GL_MakeCurrent(backupCurrentWindow, backupCurrentContext);
+            SDL_GL_MakeCurrent(backupCurrentWindow, backupCurrentContext);
+        } else {
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+        }
     }
 }
 
@@ -196,9 +225,11 @@ static void NewFrameImGui()
         case LLGL::RendererID::OpenGLES:
             ImGui_ImplOpenGL3_NewFrame();
             break;
+#ifdef __APPLE__
         case LLGL::RendererID::Metal:
-            // ImGui_ImplMetal_NewFrame();
+            ImGui_ImplMetal_NewFrame(((MTSwapChain*)llgl_swapChain).GetNativeRenderPass());
             break;
+#endif
         default:
             break;
     }
@@ -243,12 +274,11 @@ int main() {
         desc = {"OpenGL"};
 #ifndef __APPLE__
         auto handle = LLGL::OpenGL::RenderSystemNativeHandle{(GLXContext) ctx};
+#else
+        auto handle = LLGL::OpenGL::RenderSystemNativeHandle{(void*) ctx};
+#endif
         desc.nativeHandle = (void*)&handle;
         desc.nativeHandleSize = sizeof(LLGL::OpenGL::RenderSystemNativeHandle);
-#else
-        desc.nativeHandle = ctx;
-        desc.nativeHandleSize = sizeof(void*);
-#endif
     } else {
         desc = {"Metal"};
     }
