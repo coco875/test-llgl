@@ -211,14 +211,13 @@ int main() {
     LLGL::Log::Printf("Load: OpenGL\n");
 
     bool useOpenGL = true;
+
+#ifndef __APPLE__
+    SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11");
+#endif
     
     // Init SDL
     SDL_Init(SDL_INIT_VIDEO);
-
-#ifndef __APPLE__
-    setenv("SDL_VIDEODRIVER", "x11", 1);
-    SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11");
-#endif
 
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
