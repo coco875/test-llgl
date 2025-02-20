@@ -42,12 +42,44 @@ set(llgl_apply_patch_if_needed git apply ${llgl_patch_file} ${git_hide_output} |
 FetchContent_Declare(
     llgl
     GIT_REPOSITORY https://github.com/LukasBanana/LLGL.git
-    GIT_TAG 3df9f9c9eb707d2c0cfedf9a9a26371a7cce91cb
+    GIT_TAG 250eb8336e347dda4410921d48d525dea395962d
     PATCH_COMMAND ${llgl_apply_patch_if_needed}
 )
 FetchContent_MakeAvailable(llgl)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE LLGL)
+
+# #=================== spirv-headers ===================
+# FetchContent_Declare(
+#     spirv-headers
+#     GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Headers.git
+#     GIT_TAG vulkan-sdk-1.4.304.1
+# )
+# FetchContent_MakeAvailable(spirv-headers)
+
+# #=================== spirv-cross ===================
+# FetchContent_Declare(
+#     spirv-cross
+#     GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Cross.git
+#     GIT_TAG vulkan-sdk-1.4.304.1
+# )
+# FetchContent_MakeAvailable(spirv-cross)
+
+# #=================== spirv-tools ===================
+# FetchContent_Declare(
+#     spirv-tools
+#     GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Tools.git
+#     GIT_TAG vulkan-sdk-1.4.304.1
+# )
+# FetchContent_MakeAvailable(spirv-tools)
+
+# #=================== glslang ===================
+# FetchContent_Declare(
+#     glslang
+#     GIT_REPOSITORY https://github.com/KhronosGroup/glslang.git
+#     GIT_TAG vulkan-sdk-1.4.304.1
+# )
+# FetchContent_MakeAvailable(glslang)
 
 #=================== ImGui ===================
 FetchContent_Declare(

@@ -4,6 +4,8 @@
 #include <memory>
 
 #include <LLGL/LLGL.h>
+#include <LLGL/Utils/TypeNames.h>
+#include <LLGL/Utils/VertexFormat.h>
 #include <LLGL/Platform/NativeHandle.h>
 
 #include <SDL2/SDL.h>
@@ -21,6 +23,8 @@
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
+
+// #include <glslang/Public/ShaderLang.h>
 
 class CustomSurface final : public LLGL::Surface {
     public:
@@ -204,6 +208,69 @@ int main() {
 
     // swapChainDesc.samples = 4;
     LLGL::SwapChain* llgl_swapChain = llgl_renderer->CreateSwapChain(swapChainDesc, surface);
+
+    // Print renderer information
+    const auto& info = llgl_renderer->GetRendererInfo();
+
+    LLGL::Log::Printf(
+        "Renderer:             %s\n"
+        "Device:               %s\n"
+        "Vendor:               %s\n"
+        "Shading Language:     %s\n"
+        "Swap Chain Format:    %s\n"
+        "Depth/Stencil Format: %s\n"
+        "Resolution:           %u x %u\n"
+        "Samples:              %u\n",
+        info.rendererName.c_str(),
+        info.deviceName.c_str(),
+        info.vendorName.c_str(),
+        info.shadingLanguageName.c_str(),
+        LLGL::ToString(llgl_swapChain->GetColorFormat()),
+        LLGL::ToString(llgl_swapChain->GetDepthStencilFormat()),
+        llgl_swapChain->GetResolution().width,
+        llgl_swapChain->GetResolution().height,
+        llgl_swapChain->GetSamples()
+    );
+
+    // Vertex data structure
+    struct Vertex
+    {
+        float   position[2];
+        uint8_t color[4];
+    };
+
+    // Vertex data (3 vertices for our triangle)
+    const float s = 0.5f;
+
+    Vertex vertices[] =
+    {
+        { {  0,  s }, { 255, 0, 0, 255 } }, // 1st vertex: center-top, red
+        { {  s, -s }, { 0, 255, 0, 255 } }, // 2nd vertex: right-bottom, green
+        { { -s, -s }, { 0, 0, 255, 255 } }, // 3rd vertex: left-bottom, blue
+    };
+
+    // Vertex format
+    LLGL::VertexFormat vertexFormat;
+
+    // Append 2D float vector for position attribute
+    vertexFormat.AppendAttribute({ "position", LLGL::Format::RG32Float });
+
+    // Append 3D unsigned byte vector for color
+    vertexFormat.AppendAttribute({ "color",    LLGL::Format::RGBA8UNorm });
+
+    // Update stride in case out vertex structure is not 4-byte aligned
+    vertexFormat.SetStride(sizeof(Vertex));
+
+    // Create vertex buffer
+    LLGL::BufferDescriptor vertexBufferDesc;
+    {
+        vertexBufferDesc.size           = sizeof(vertices);                 // Size (in bytes) of the vertex buffer
+        vertexBufferDesc.bindFlags      = LLGL::BindFlags::VertexBuffer;    // Enables the buffer to be bound to a vertex buffer slot
+        vertexBufferDesc.vertexAttribs  = vertexFormat.attributes;          // Vertex format layout
+    }
+    LLGL::Buffer* vertexBuffer = llgl_renderer->CreateBuffer(vertexBufferDesc, vertices);
+
+    const auto& languages = llgl_renderer->GetRenderingCaps().shadingLanguages;
 
     LLGL::CommandBuffer* llgl_cmdBuffer = llgl_renderer->CreateCommandBuffer(LLGL::CommandBufferFlags::ImmediateSubmit);
 
