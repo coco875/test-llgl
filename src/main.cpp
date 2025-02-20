@@ -316,7 +316,9 @@ int main() {
 #endif
         desc.nativeHandle = (void*)&handle;
         desc.nativeHandleSize = sizeof(LLGL::OpenGL::RenderSystemNativeHandle);
-    } else {
+    } else if (rendererID == LLGL::RendererID::Vulkan) {
+        desc = {"Vulkan"};
+    } else if (rendererID == LLGL::RendererID::Metal) {
         desc = {"Metal"};
     }
     LLGL::Report report;
