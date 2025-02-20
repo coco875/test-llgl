@@ -91,7 +91,7 @@ target_sources(ImGui
 
 target_include_directories(ImGui PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends PRIVATE ${SDL2_INCLUDE_DIRS})
 
-target_link_libraries(ImGui PUBLIC SDL2::SDL2)
+target_link_libraries(ImGui PUBLIC SDL2::SDL2 ${Vulkan_LIBRARY})
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ImGui)
 
