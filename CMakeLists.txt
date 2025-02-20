@@ -41,6 +41,7 @@ set(LLGL_BUILD_RENDERER_OPENGL ON)
 set(LLGL_GL_ENABLE_DSA_EXT ON)
 set(LLGL_GL_ENABLE_VENDOR_EXT ON)
 set(LLGL_GL_INCLUDE_EXTERNAL ON)
+set(LLGL_BUILD_RENDERER_VULKAN ON)
 
 set(LLGL_OUTPUT_DIR ${CMAKE_BINARY_DIR})
 
@@ -52,7 +53,7 @@ set(llgl_apply_patch_if_needed git apply ${llgl_patch_file} ${git_hide_output} |
 FetchContent_Declare(
     llgl
     GIT_REPOSITORY https://github.com/LukasBanana/LLGL.git
-    GIT_TAG 918bc0596e82e8376a4cac8f7d0c4ce5cd9fbd90
+    GIT_TAG 250eb8336e347dda4410921d48d525dea395962d
     PATCH_COMMAND ${llgl_apply_patch_if_needed}
 )
 FetchContent_MakeAvailable(llgl)
@@ -85,6 +86,7 @@ target_sources(ImGui
     PRIVATE
     ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
 )
 
 target_include_directories(ImGui PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends PRIVATE ${SDL2_INCLUDE_DIRS})
@@ -95,4 +97,11 @@ target_link_libraries(${PROJECT_NAME} PUBLIC ImGui)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
     include(cmake/mac.cmake)
+endif()
+
+find_package(Vulkan REQUIRED)
+if(Vulkan_FOUND)
+    include_directories(${Vulkan_INCLUDE_DIR})
+else()
+    message(FATAL_ERROR "LLGL_BUILD_RENDERER_VULKAN failed: missing Vulkan libraries")
 endif()

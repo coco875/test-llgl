@@ -17,6 +17,7 @@
 #include <GL/glx.h>
 #endif
 #include <LLGL/Backend/OpenGL/NativeHandle.h>
+#include <LLGL/Backend/Vulkan/NativeHandle.h>
 #ifdef __APPLE__
 #include <LLGL/Backend/Metal/NativeHandle.h>
 #endif
@@ -24,6 +25,7 @@
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
+#include "imgui_impl_vulkan.h"
 #ifdef __APPLE__
 #include "imgui_impl_metal.h"
 #endif
@@ -64,6 +66,9 @@ CustomSurface::CustomSurface(const LLGL::Extent2D& size, const char* title, int 
             break;
         case LLGL::RendererID::Metal:
             flags |= SDL_WINDOW_METAL;
+            break;
+        case LLGL::RendererID::Vulkan:
+            flags |= SDL_WINDOW_VULKAN;
             break;
         default:
             break;
@@ -151,6 +156,20 @@ static void InitImGui(CustomSurface& wnd)
         case LLGL::RendererID::Metal:
             ImGui_ImplSDL2_InitForMetal(wnd.wnd);
             break;
+        case LLGL::RendererID::Vulkan: {
+            ImGui_ImplSDL2_InitForVulkan(wnd.wnd);
+            LLGL::Vulkan::RenderSystemNativeHandle instance;
+            llgl_renderer->GetNativeHandle(&instance, sizeof(LLGL::Vulkan::RenderSystemNativeHandle));
+            ImGui_ImplVulkan_InitInfo init_info = {};
+            init_info.Instance = instance.instance;
+            init_info.PhysicalDevice = instance.physicalDevice;
+            init_info.Device = instance.device;
+            init_info.QueueFamily = instance.queueGraphicsFamily;
+            init_info.Queue = instance.queue;
+            init_info.DescriptorPoolSize = 1000;
+            ImGui_ImplVulkan_Init(&init_info);
+            break;
+        }
         default:
             io.BackendRendererName = "imgui_impl_null";
             break;
@@ -170,6 +189,9 @@ static void ShutdownImGui()
         case LLGL::RendererID::Metal:
             // ImGui_ImplMetal_Shutdown();
             break;
+        case LLGL::RendererID::Vulkan:
+            ImGui_ImplVulkan_Shutdown();
+            break;
         default:
             break;
     }
@@ -188,13 +210,20 @@ static void RenderImGui()
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             break;
 #ifdef __APPLE__
-        case LLGL::RendererID::Metal:
+        case LLGL::RendererID::Metal: {
             LLGL::Metal::CommandBufferNativeHandle cmdBuffer;
             llgl_cmdBuffer->GetNativeHandle(&cmdBuffer, sizeof(LLGL::Metal::CommandBufferNativeHandle));
 
             ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), (MTL::CommandBuffer *) cmdBuffer.commandBuffer, nullptr);
             break;
+        }
 #endif
+        case LLGL::RendererID::Vulkan: {
+            LLGL::Vulkan::CommandBufferNativeHandle cmdBuffer;
+            llgl_cmdBuffer->GetNativeHandle(&cmdBuffer, sizeof(LLGL::Vulkan::CommandBufferNativeHandle));
+            ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer.commandBuffer, nullptr);
+            break;
+        }
         default:
             break;
     }
@@ -227,9 +256,12 @@ static void NewFrameImGui()
             break;
 #ifdef __APPLE__
         case LLGL::RendererID::Metal:
-            ImGui_ImplMetal_NewFrame(((MTSwapChain*)llgl_swapChain).GetNativeRenderPass());
+            ImGui_ImplMetal_NewFrame(nullptr);
             break;
 #endif
+        case LLGL::RendererID::Vulkan:
+            ImGui_ImplVulkan_NewFrame();
+            break;
         default:
             break;
     }
@@ -241,7 +273,9 @@ int main() {
     LLGL::Log::RegisterCallbackStd();
     LLGL::Log::Printf("Load: OpenGL\n");
 
-    bool useOpenGL = true;
+    int rendererID = LLGL::RendererID::Vulkan;
+
+    bool useOpenGL = rendererID == LLGL::RendererID::OpenGL || rendererID == LLGL::RendererID::OpenGLES;
 
 #ifndef __APPLE__
     SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11");
@@ -250,9 +284,11 @@ int main() {
     // Init SDL
     SDL_Init(SDL_INIT_VIDEO);
 
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    if (useOpenGL) {
+        SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+        SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+        SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    }
 
     
     const uint32_t window_width = 800;
@@ -261,7 +297,8 @@ int main() {
     LLGL::SwapChainDescriptor swapChainDesc;
     swapChainDesc.resolution = { window_width, window_height };
     swapChainDesc.samples = 4;
-    auto surface = std::make_shared<CustomSurface>(swapChainDesc.resolution, "LLGL SwapChain", LLGL::RendererID::OpenGL);
+
+    auto surface = std::make_shared<CustomSurface>(swapChainDesc.resolution, "LLGL SwapChain", rendererID);
     LLGL::RenderSystemDescriptor desc;
     if (useOpenGL) {
         SDL_GL_GetDrawableSize(surface->wnd, (int*) &window_width, (int*) &window_height);
