@@ -14,6 +14,13 @@ file(GLOB_RECURSE ALL_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     "src/*.cpp"
 )
 
+if(APPLE)
+    file(GLOB_RECURSE APPLE_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+        "src/*.mm"
+    )
+    list(APPEND ALL_FILES ${APPLE_FILES})
+endif()
+
 # add_compile_options(-lglut -lGL -lGLEW -lGLU -lglx)
 # add_link_options( -lGL -lGLEW -lGLU )
 
@@ -102,6 +109,7 @@ endif()
 find_package(Vulkan REQUIRED)
 if(Vulkan_FOUND)
     include_directories(${Vulkan_INCLUDE_DIR})
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${Vulkan_LIBRARY})
 else()
     message(FATAL_ERROR "LLGL_BUILD_RENDERER_VULKAN failed: missing Vulkan libraries")
 endif()

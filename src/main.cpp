@@ -30,6 +30,11 @@
 #include "imgui_impl_metal.h"
 #endif
 
+void Imgui_Metal_llgl_Shutdown();
+void Imgui_Metal_llgl_NewFrame();
+void Imgui_Metal_llgl_EndFrame(ImDrawData* data);
+void Imgui_Metal_llgl_Init();
+
 LLGL::RenderSystemPtr llgl_renderer;
 LLGL::SwapChain* llgl_swapChain;
 LLGL::CommandBuffer* llgl_cmdBuffer;
@@ -233,6 +238,7 @@ static void InitImGui(CustomSurface& wnd)
             break;
         case LLGL::RendererID::Metal:
             ImGui_ImplSDL2_InitForMetal(wnd.wnd);
+            Imgui_Metal_llgl_Init();
             break;
         case LLGL::RendererID::Vulkan: {
             ImGui_ImplSDL2_InitForVulkan(wnd.wnd);
@@ -277,7 +283,7 @@ static void ShutdownImGui()
             ImGui_ImplOpenGL3_Shutdown();
             break;
         case LLGL::RendererID::Metal:
-            // ImGui_ImplMetal_Shutdown();
+            Imgui_Metal_llgl_Shutdown();
             break;
         case LLGL::RendererID::Vulkan:
             ImGui_ImplVulkan_Shutdown();
@@ -301,10 +307,7 @@ static void RenderImGui()
             break;
 #ifdef __APPLE__
         case LLGL::RendererID::Metal: {
-            LLGL::Metal::CommandBufferNativeHandle cmdBuffer;
-            llgl_cmdBuffer->GetNativeHandle(&cmdBuffer, sizeof(LLGL::Metal::CommandBufferNativeHandle));
-
-            ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), (MTL::CommandBuffer *) cmdBuffer.commandBuffer, nullptr);
+            Imgui_Metal_llgl_EndFrame(ImGui::GetDrawData());
             break;
         }
 #endif
@@ -346,7 +349,7 @@ static void NewFrameImGui()
             break;
 #ifdef __APPLE__
         case LLGL::RendererID::Metal:
-            ImGui_ImplMetal_NewFrame(nullptr);
+            Imgui_Metal_llgl_NewFrame();
             break;
 #endif
         case LLGL::RendererID::Vulkan:
@@ -363,7 +366,7 @@ int main() {
     LLGL::Log::RegisterCallbackStd();
     LLGL::Log::Printf("Load: OpenGL\n");
 
-    int rendererID = LLGL::RendererID::Vulkan;
+    int rendererID = LLGL::RendererID::Metal;
 
     bool useOpenGL = rendererID == LLGL::RendererID::OpenGL || rendererID == LLGL::RendererID::OpenGLES;
 
@@ -445,7 +448,7 @@ int main() {
         {
             llgl_cmdBuffer->BeginRenderPass(*llgl_swapChain);
             {
-                llgl_cmdBuffer->Clear(LLGL::ClearFlags::Color, LLGL::ClearValue{ 0.0f, 0.0f, 0.0f, 1.0f });
+                llgl_cmdBuffer->Clear(LLGL::ClearFlags::Color, LLGL::ClearValue{ 0.0f, 0.2f, 0.2f, 1.0f });
 
                 // GUI Rendering
                 RenderImGui();
