@@ -30,10 +30,12 @@
 #include "imgui_impl_metal.h"
 #endif
 
+#ifdef __APPLE__
 void Imgui_Metal_llgl_Shutdown();
 void Imgui_Metal_llgl_NewFrame();
 void Imgui_Metal_llgl_EndFrame(ImDrawData* data);
 void Imgui_Metal_llgl_Init();
+#endif
 
 LLGL::RenderSystemPtr llgl_renderer;
 LLGL::SwapChain* llgl_swapChain;
@@ -236,10 +238,12 @@ static void InitImGui(CustomSurface& wnd)
             ImGui_ImplSDL2_InitForOpenGL(wnd.wnd, ctx);
             ImGui_ImplOpenGL3_Init("#version 300 es");
             break;
+#ifdef __APPLE__
         case LLGL::RendererID::Metal:
             ImGui_ImplSDL2_InitForMetal(wnd.wnd);
             Imgui_Metal_llgl_Init();
             break;
+#endif
         case LLGL::RendererID::Vulkan: {
             ImGui_ImplSDL2_InitForVulkan(wnd.wnd);
             LLGL::Vulkan::RenderSystemNativeHandle instance;
@@ -282,9 +286,11 @@ static void ShutdownImGui()
         case LLGL::RendererID::OpenGLES:
             ImGui_ImplOpenGL3_Shutdown();
             break;
+#ifdef __APPLE__
         case LLGL::RendererID::Metal:
             Imgui_Metal_llgl_Shutdown();
             break;
+#endif
         case LLGL::RendererID::Vulkan:
             ImGui_ImplVulkan_Shutdown();
             break;
@@ -366,7 +372,7 @@ int main() {
     LLGL::Log::RegisterCallbackStd();
     LLGL::Log::Printf("Load: OpenGL\n");
 
-    int rendererID = LLGL::RendererID::Metal;
+    int rendererID = LLGL::RendererID::Vulkan;
 
     bool useOpenGL = rendererID == LLGL::RendererID::OpenGL || rendererID == LLGL::RendererID::OpenGLES;
 
