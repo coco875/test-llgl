@@ -194,23 +194,6 @@ LLGL::Display* CustomSurface::FindResidentDisplay() const {
     return nullptr;
 }
 
-bool PollEvents(std::shared_ptr<CustomSurface> surface) {
-    SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-        if (event.type == SDL_QUIT) {
-            return false;
-        }
-        if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_RESIZED) {
-            uint32_t width = event.window.data1;
-            uint32_t height = event.window.data2;
-            surface->size = { width, height };
-            llgl_swapChain->ResizeBuffers(surface->size);
-        }
-        ImGui_ImplSDL2_ProcessEvent(&event);
-    }
-    return true;
-}
-
 static void InitImGui(CustomSurface& wnd)
 {
     // Setup Dear ImGui context
@@ -366,6 +349,23 @@ static void NewFrameImGui()
             break;
     }
     ImGui::NewFrame();
+}
+
+bool PollEvents(std::shared_ptr<CustomSurface> surface) {
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT) {
+            return false;
+        }
+        if (event.type == SDL_WINDOWEVENT && (event.window.event == SDL_WINDOWEVENT_RESIZED || event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)) {
+            uint32_t width = event.window.data1;
+            uint32_t height = event.window.data2;
+            surface->size = { width, height };
+            llgl_swapChain->ResizeBuffers(surface->size);
+        }
+        ImGui_ImplSDL2_ProcessEvent(&event);
+    }
+    return true;
 }
 
 int main() {
