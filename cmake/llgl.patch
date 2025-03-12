@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 943f676b..623dc173 100644
+index 9d38212c..8c294429 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -76,7 +76,7 @@ endif()
@@ -11,20 +11,3 @@ index 943f676b..623dc173 100644
  
  set( EXTERNAL_MODULE_DIR            "${PROJECT_SOURCE_DIR}/cmake"                   )
  set( PROJECT_INCLUDE_DIR            "${PROJECT_SOURCE_DIR}/include"                 )
-diff --git a/include/LLGL/Platform/MacOS/MacOSNativeHandle.h b/include/LLGL/Platform/MacOS/MacOSNativeHandle.h
-index ccbf599f..8db03b02 100644
---- a/include/LLGL/Platform/MacOS/MacOSNativeHandle.h
-+++ b/include/LLGL/Platform/MacOS/MacOSNativeHandle.h
-@@ -8,8 +8,11 @@
- #ifndef LLGL_MACOS_NATIVE_HANDLE_H
- #define LLGL_MACOS_NATIVE_HANDLE_H
- 
--
-+#ifdef __OBJC__
- #include <Cocoa/Cocoa.h>
-+#else
-+typedef void NSResponder;
-+#endif
- 
- 
- namespace LLGL

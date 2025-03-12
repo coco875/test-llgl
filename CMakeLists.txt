@@ -14,12 +14,30 @@ file(GLOB_RECURSE ALL_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     "src/*.cpp"
 )
 
+if(APPLE)
+    enable_language(OBJCXX)
+    file(GLOB_RECURSE APPLE_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+        "src/*.mm"
+    )
+    list(APPEND ALL_FILES ${APPLE_FILES})
+endif()
+
 # add_compile_options(-lglut -lGL -lGLEW -lGLU -lglx)
 # add_link_options( -lGL -lGLEW -lGLU )
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 
-find_package(SDL2 REQUIRED)
+#=================== SDL2 ===================
+find_package(SDL2 QUIET)
+if (NOT ${SDL2_FOUND})
+    FetchContent_Declare(
+        SDL2
+        GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+        GIT_TAG release-2.28.1
+        OVERRIDE_FIND_PACKAGE
+    )
+    FetchContent_MakeAvailable(SDL2)
+endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL2_LIBRARIES})
@@ -31,6 +49,7 @@ set(LLGL_BUILD_RENDERER_OPENGL ON)
 set(LLGL_GL_ENABLE_DSA_EXT ON)
 set(LLGL_GL_ENABLE_VENDOR_EXT ON)
 set(LLGL_GL_INCLUDE_EXTERNAL ON)
+set(LLGL_BUILD_RENDERER_VULKAN ON)
 
 set(LLGL_OUTPUT_DIR ${CMAKE_BINARY_DIR})
 
@@ -42,12 +61,13 @@ set(llgl_apply_patch_if_needed git apply ${llgl_patch_file} ${git_hide_output} |
 FetchContent_Declare(
     llgl
     GIT_REPOSITORY https://github.com/LukasBanana/LLGL.git
-    GIT_TAG 3df9f9c9eb707d2c0cfedf9a9a26371a7cce91cb
+    GIT_TAG 3bdaadbf7f1f07b6ba2fcb626a818351ceb817ce
     PATCH_COMMAND ${llgl_apply_patch_if_needed}
 )
 FetchContent_MakeAvailable(llgl)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE LLGL)
+target_include_directories(${PROJECT_NAME} PRIVATE ${llgl_SOURCE_DIR})
 
 #=================== ImGui ===================
 FetchContent_Declare(
@@ -74,10 +94,23 @@ target_sources(ImGui
     PRIVATE
     ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
 )
 
 target_include_directories(ImGui PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends PRIVATE ${SDL2_INCLUDE_DIRS})
 
-target_link_libraries(ImGui PUBLIC SDL2::SDL2)
+target_link_libraries(ImGui PUBLIC SDL2::SDL2 ${Vulkan_LIBRARY})
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ImGui)
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    include(cmake/mac.cmake)
+endif()
+
+find_package(Vulkan REQUIRED)
+if(Vulkan_FOUND)
+    include_directories(${Vulkan_INCLUDE_DIR})
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${Vulkan_LIBRARY})
+else()
+    message(FATAL_ERROR "LLGL_BUILD_RENDERER_VULKAN failed: missing Vulkan libraries")
+endif()
