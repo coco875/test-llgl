@@ -340,6 +340,7 @@ static void RenderImGui()
 
 static void NewFrameImGui()
 {
+    ImGui_ImplSDL2_NewFrame();
     switch (llgl_renderer->GetRendererID()) {
         case LLGL::RendererID::OpenGL:
             ImGui_ImplOpenGL3_NewFrame();
@@ -358,7 +359,6 @@ static void NewFrameImGui()
         default:
             break;
     }
-    ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 }
 
@@ -437,12 +437,6 @@ int main() {
     InitImGui(*surface);
     
     while (PollEvents(surface)) {
-        // Start the Dear ImGui frame
-        NewFrameImGui();
-
-        // Show ImGui's demo window
-        ImGui::ShowDemoWindow();
-
         // Rendering
         llgl_cmdBuffer->Begin();
         {
@@ -450,8 +444,20 @@ int main() {
             {
                 llgl_cmdBuffer->Clear(LLGL::ClearFlags::Color, LLGL::ClearValue{ 0.0f, 0.2f, 0.2f, 1.0f });
 
-                // GUI Rendering
-                RenderImGui();
+                // GUI Rendering with ImGui library
+                llgl_cmdBuffer->PushDebugGroup("RenderGUI");
+                {
+                    // Start the Dear ImGui frame
+                    NewFrameImGui();
+
+                    // Show ImGui's demo window
+                    ImGui::ShowDemoWindow();
+                    
+                    // GUI Rendering
+                    RenderImGui();
+                }
+                llgl_cmdBuffer->PopDebugGroup();
+
             }
             llgl_cmdBuffer->EndRenderPass();
         }

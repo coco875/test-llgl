@@ -15,6 +15,7 @@ file(GLOB_RECURSE ALL_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 if(APPLE)
+    enable_language(OBJCXX)
     file(GLOB_RECURSE APPLE_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
         "src/*.mm"
     )
@@ -60,7 +61,7 @@ set(llgl_apply_patch_if_needed git apply ${llgl_patch_file} ${git_hide_output} |
 FetchContent_Declare(
     llgl
     GIT_REPOSITORY https://github.com/LukasBanana/LLGL.git
-    GIT_TAG 7571398593e7981adddab7c3f035bba62d264ffe
+    GIT_TAG 3bdaadbf7f1f07b6ba2fcb626a818351ceb817ce
     PATCH_COMMAND ${llgl_apply_patch_if_needed}
 )
 FetchContent_MakeAvailable(llgl)
