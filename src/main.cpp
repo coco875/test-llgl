@@ -416,7 +416,8 @@ int main() {
 
     LLGL::SwapChainDescriptor swapChainDesc;
     swapChainDesc.resolution = { window_width, window_height };
-    swapChainDesc.samples = 4;
+    swapChainDesc.resizable = true;
+    // swapChainDesc.samples = 4;
 
     auto surface = std::make_shared<CustomSurface>(swapChainDesc.resolution, "LLGL SwapChain", rendererID);
     LLGL::RenderSystemDescriptor desc;
@@ -456,7 +457,6 @@ int main() {
         }
     }
 
-    swapChainDesc.samples = 4;
     llgl_swapChain = llgl_renderer->CreateSwapChain(swapChainDesc, surface);
 
     llgl_cmdBuffer = llgl_renderer->CreateCommandBuffer(LLGL::CommandBufferFlags::ImmediateSubmit);
