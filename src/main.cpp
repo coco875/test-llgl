@@ -29,13 +29,21 @@
 #ifdef __APPLE__
 #include "imgui_impl_metal.h"
 #endif
+#ifdef WIN32
+#include "imgui_impl_dx11.h"
+#endif
 
 #ifdef __APPLE__
 void Imgui_Metal_llgl_Shutdown();
-void Imgui_Metal_llgl_NewFrame();
-void Imgui_Metal_llgl_EndFrame(ImDrawData* data);
-void Imgui_Metal_llgl_Init();
+void Imgui_Metal_llgl_NewFrame(LLGL::CommandBuffer* cmdBuffer);
+void Imgui_Metal_llgl_RenderDrawData(ImDrawData* data);
+void Imgui_Metal_llgl_Init(LLGL::RenderSystemPtr& renderer);
 extern "C" float Imgui_Metal_llgl_GetContentScale(NSWindow *wnd_);
+#endif
+
+#ifdef WIN32
+ID3D11Device*           d3dDevice           = nullptr;
+ID3D11DeviceContext*    d3dDeviceContext    = nullptr;
 #endif
 
 LLGL::RenderSystemPtr llgl_renderer;
@@ -205,7 +213,7 @@ LLGL::Display* CustomSurface::FindResidentDisplay() const {
     return nullptr;
 }
 
-static void InitImGui(CustomSurface& wnd)
+static void InitImGui(CustomSurface& wnd, LLGL::RenderSystemPtr& renderer)
 {
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -218,7 +226,7 @@ static void InitImGui(CustomSurface& wnd)
 
     void* ctx = nullptr;
 
-    switch (auto a = llgl_renderer->GetRendererID()) {
+    switch (auto a = renderer->GetRendererID()) {
         case LLGL::RendererID::OpenGL:
                 ImGui_ImplSDL2_InitForOpenGL(wnd.wnd, ctx);
                 // Setup renderer backend
@@ -235,13 +243,27 @@ static void InitImGui(CustomSurface& wnd)
 #ifdef __APPLE__
         case LLGL::RendererID::Metal:
             ImGui_ImplSDL2_InitForMetal(wnd.wnd);
-            Imgui_Metal_llgl_Init();
+            Imgui_Metal_llgl_Init(renderer);
+            break;
+#endif
+#ifdef WIN32
+        case LLGL::RendererID::Direct3D11:
+            // Setup renderer backend
+            LLGL::Direct3D11::RenderSystemNativeHandle nativeDeviceHandle;
+            renderer->GetNativeHandle(&nativeDeviceHandle, sizeof(nativeDeviceHandle));
+            d3dDevice = nativeDeviceHandle.device;
+
+            LLGL::Direct3D11::CommandBufferNativeHandle nativeContextHandle;
+            cmdBuffer->GetNativeHandle(&nativeContextHandle, sizeof(nativeContextHandle));
+            d3dDeviceContext = nativeContextHandle.deviceContext;
+
+            ImGui_ImplDX11_Init(d3dDevice, d3dDeviceContext);
             break;
 #endif
         case LLGL::RendererID::Vulkan: {
             ImGui_ImplSDL2_InitForVulkan(wnd.wnd);
             LLGL::Vulkan::RenderSystemNativeHandle instance;
-            llgl_renderer->GetNativeHandle(&instance, sizeof(LLGL::Vulkan::RenderSystemNativeHandle));
+            renderer->GetNativeHandle(&instance, sizeof(LLGL::Vulkan::RenderSystemNativeHandle));
             VkDevice vulkanDevice = instance.device;
 
             // Create Vulkan render pass
@@ -270,10 +292,10 @@ static void InitImGui(CustomSurface& wnd)
     }
 }
 
-static void ShutdownImGui()
+static void ShutdownImGui(LLGL::RenderSystemPtr& renderer)
 {
     // Shutdown ImGui
-    switch (llgl_renderer->GetRendererID()) {
+    switch (renderer->GetRendererID()) {
         case LLGL::RendererID::OpenGL:
             ImGui_ImplOpenGL3_Shutdown();
             break;
@@ -283,6 +305,11 @@ static void ShutdownImGui()
 #ifdef __APPLE__
         case LLGL::RendererID::Metal:
             Imgui_Metal_llgl_Shutdown();
+            break;
+#endif
+#ifdef WIN32
+        case LLGL::RendererID::Direct3D11:
+            ImGui_ImplDX11_Shutdown();
             break;
 #endif
         case LLGL::RendererID::Vulkan:
@@ -295,10 +322,10 @@ static void ShutdownImGui()
     ImGui::DestroyContext();
 }
 
-static void RenderImGui()
+static void RenderImGui(LLGL::RenderSystemPtr& renderer)
 {
     ImGui::Render();
-    switch (llgl_renderer->GetRendererID()) {
+    switch (renderer->GetRendererID()) {
         case LLGL::RendererID::OpenGL:
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             break;
@@ -307,9 +334,14 @@ static void RenderImGui()
             break;
 #ifdef __APPLE__
         case LLGL::RendererID::Metal: {
-            Imgui_Metal_llgl_EndFrame(ImGui::GetDrawData());
+            Imgui_Metal_llgl_RenderDrawData(ImGui::GetDrawData());
             break;
         }
+#endif
+#ifdef WIN32
+        case LLGL::RendererID::Direct3D11:
+            ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+            break;
 #endif
         case LLGL::RendererID::Vulkan: {
             LLGL::Vulkan::CommandBufferNativeHandle cmdBuffer;
@@ -323,7 +355,7 @@ static void RenderImGui()
     ImGuiIO& io = ImGui::GetIO();
 
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-        if (llgl_renderer->GetRendererID() == LLGL::RendererID::OpenGL || llgl_renderer->GetRendererID() == LLGL::RendererID::OpenGLES) {
+        if (renderer->GetRendererID() == LLGL::RendererID::OpenGL || renderer->GetRendererID() == LLGL::RendererID::OpenGLES) {
             SDL_Window* backupCurrentWindow = SDL_GL_GetCurrentWindow();
             SDL_GLContext backupCurrentContext = SDL_GL_GetCurrentContext();
 
@@ -338,10 +370,9 @@ static void RenderImGui()
     }
 }
 
-static void NewFrameImGui()
-{
+static void NewFrameImGui(LLGL::CommandBuffer* cmdBuffer, LLGL::RenderSystemPtr& renderer) {
     ImGui_ImplSDL2_NewFrame();
-    switch (llgl_renderer->GetRendererID()) {
+    switch (renderer->GetRendererID()) {
         case LLGL::RendererID::OpenGL:
             ImGui_ImplOpenGL3_NewFrame();
             break;
@@ -350,7 +381,12 @@ static void NewFrameImGui()
             break;
 #ifdef __APPLE__
         case LLGL::RendererID::Metal:
-            Imgui_Metal_llgl_NewFrame();
+            Imgui_Metal_llgl_NewFrame(cmdBuffer);
+            break;
+#endif
+#ifdef WIN32
+        case LLGL::RendererID::Direct3D11:
+            ImGui_ImplDX11_NewFrame();
             break;
 #endif
         case LLGL::RendererID::Vulkan:
@@ -461,7 +497,7 @@ int main() {
 
     llgl_cmdBuffer = llgl_renderer->CreateCommandBuffer(LLGL::CommandBufferFlags::ImmediateSubmit);
 
-    InitImGui(*surface);
+    InitImGui(*surface, llgl_renderer);
     
     while (PollEvents(surface)) {
         // Rendering
@@ -475,13 +511,13 @@ int main() {
                 llgl_cmdBuffer->PushDebugGroup("RenderGUI");
                 {
                     // Start the Dear ImGui frame
-                    NewFrameImGui();
+                    NewFrameImGui(llgl_cmdBuffer, llgl_renderer);
 
                     // Show ImGui's demo window
                     ImGui::ShowDemoWindow();
                     
                     // GUI Rendering
-                    RenderImGui();
+                    RenderImGui(llgl_renderer);
                 }
                 llgl_cmdBuffer->PopDebugGroup();
 
@@ -494,7 +530,7 @@ int main() {
         llgl_swapChain->Present();
     }
     
-    ShutdownImGui();
+    ShutdownImGui(llgl_renderer);
     LLGL::RenderSystem::Unload(std::move(llgl_renderer));
     SDL_Quit();
     

@@ -15,7 +15,6 @@
 
 #import <Metal/Metal.h>
 
-extern LLGL::CommandBuffer* llgl_cmdBuffer;
 extern LLGL::RenderSystemPtr llgl_renderer;
 
 
@@ -25,10 +24,10 @@ id<MTLCommandBuffer> mtlCommandBuffer = nil;
 id<MTLRenderCommandEncoder> mtlRenderCmdEncoder = nil;
 MTLRenderPassDescriptor* mtlRenderPassDesc = nullptr;
 
-void Imgui_Metal_llgl_Init() {
+void Imgui_Metal_llgl_Init(LLGL::RenderSystemPtr& renderer) {
     // Setup renderer backend
     LLGL::Metal::RenderSystemNativeHandle nativeDeviceHandle;
-    llgl_renderer->GetNativeHandle(&nativeDeviceHandle, sizeof(nativeDeviceHandle));
+    renderer->GetNativeHandle(&nativeDeviceHandle, sizeof(nativeDeviceHandle));
     mtlDevice = nativeDeviceHandle.device;
 
     ImGui_ImplMetal_Init(mtlDevice);
@@ -43,10 +42,10 @@ void Imgui_Metal_llgl_Shutdown() {
         [mtlDevice release];
 }
 
-void Imgui_Metal_llgl_NewFrame() {
+void Imgui_Metal_llgl_NewFrame(LLGL::CommandBuffer* cmdBuffer) {
 
     LLGL::Metal::CommandBufferNativeHandle nativeContextHandle;
-    llgl_cmdBuffer->GetNativeHandle(&nativeContextHandle, sizeof(nativeContextHandle));
+    cmdBuffer->GetNativeHandle(&nativeContextHandle, sizeof(nativeContextHandle));
 
     mtlCommandBuffer = nativeContextHandle.commandBuffer;
     LLGL_VERIFY(mtlCommandBuffer != nil);
@@ -60,7 +59,7 @@ void Imgui_Metal_llgl_NewFrame() {
     ImGui_ImplMetal_NewFrame(mtlRenderPassDesc);
 }
 
-void Imgui_Metal_llgl_EndFrame(ImDrawData* data) {
+void Imgui_Metal_llgl_RenderDrawData(ImDrawData* data) {
     // Encode render commands
     ImGui_ImplMetal_RenderDrawData(data, mtlCommandBuffer, mtlRenderCmdEncoder);
 
