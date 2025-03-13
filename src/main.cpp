@@ -35,6 +35,7 @@ void Imgui_Metal_llgl_Shutdown();
 void Imgui_Metal_llgl_NewFrame();
 void Imgui_Metal_llgl_EndFrame(ImDrawData* data);
 void Imgui_Metal_llgl_Init();
+extern "C" float Imgui_Metal_llgl_GetContentScale(NSWindow *wnd_);
 #endif
 
 LLGL::RenderSystemPtr llgl_renderer;
@@ -163,6 +164,16 @@ CustomSurface::CustomSurface(const LLGL::Extent2D& size, const char* title, int 
         LLGL::Log::Errorf("Failed to create SDL2 window\n");
         exit(1);
     }
+
+#ifdef __APPLE__
+    if (wnd) {
+        SDL_SysWMinfo wmInfo;
+        SDL_VERSION(&wmInfo.version);
+        SDL_GetWindowWMInfo(wnd, &wmInfo);
+        float scale = Imgui_Metal_llgl_GetContentScale(wmInfo.info.cocoa.window);
+        this->size = LLGL::Extent2D(size.width * scale, size.height * scale);
+    }
+#endif
 }
 
 CustomSurface::~CustomSurface() {
@@ -360,6 +371,16 @@ bool PollEvents(std::shared_ptr<CustomSurface> surface) {
         if (event.type == SDL_WINDOWEVENT && (event.window.event == SDL_WINDOWEVENT_RESIZED || event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)) {
             uint32_t width = event.window.data1;
             uint32_t height = event.window.data2;
+#ifdef __APPLE__
+            if (surface->wnd) {
+                SDL_SysWMinfo wmInfo;
+                SDL_VERSION(&wmInfo.version);
+                SDL_GetWindowWMInfo(surface->wnd, &wmInfo);
+                float scale = Imgui_Metal_llgl_GetContentScale(wmInfo.info.cocoa.window);
+                width *= scale;
+                height *= scale;
+            }
+#endif
             surface->size = { width, height };
             llgl_swapChain->ResizeBuffers(surface->size);
         }
