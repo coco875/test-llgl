@@ -4,7 +4,6 @@
 #include <memory>
 
 #include <LLGL/LLGL.h>
-#include <LLGL/Platform/NativeHandle.h>
 
 #ifndef __APPLE__
 #include <GL/glx.h>
@@ -14,10 +13,6 @@
 
 #include "sdl_llgl.h"
 #include "imgui_llgl.h"
-
-LLGL::RenderSystemPtr llgl_renderer;
-LLGL::SwapChain* llgl_swapChain;
-LLGL::CommandBuffer* llgl_cmdBuffer;
 
 int main() {
     LLGL::Log::RegisterCallbackStd();
@@ -43,7 +38,7 @@ int main() {
     LLGL::RenderSystemDescriptor desc;
     auto surface = std::make_shared<SDLSurface>(swapChainDesc.resolution, "LLGL SwapChain", rendererID, desc);
     LLGL::Report report;
-    llgl_renderer = LLGL::RenderSystem::Load(desc, &report);
+    auto llgl_renderer = LLGL::RenderSystem::Load(desc, &report);
 
     // Create SDL window and LLGL swap-chain
     if (!llgl_renderer) {
@@ -57,9 +52,9 @@ int main() {
         }
     }
 
-    llgl_swapChain = llgl_renderer->CreateSwapChain(swapChainDesc, surface);
+    auto llgl_swapChain = llgl_renderer->CreateSwapChain(swapChainDesc, surface);
 
-    llgl_cmdBuffer = llgl_renderer->CreateCommandBuffer(LLGL::CommandBufferFlags::ImmediateSubmit);
+    auto llgl_cmdBuffer = llgl_renderer->CreateCommandBuffer(LLGL::CommandBufferFlags::ImmediateSubmit);
 
     InitImGui(*surface, llgl_renderer, llgl_swapChain);
 
