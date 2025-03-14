@@ -7,10 +7,6 @@
 #define GL_GLEXT_PROTOTYPES 1
 #include <SDL2/SDL_opengl.h>
 
-#ifdef __APPLE__
-extern "C" float Imgui_Metal_llgl_GetContentScale(NSWindow* wnd_);
-#endif
-
 class SDLSurface final : public LLGL::Surface {
   public:
     // Constructor and destructor
