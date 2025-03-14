@@ -68,13 +68,7 @@ SDLSurface::SDLSurface(const LLGL::Extent2D& size, const char* title, int render
     }
 
 #ifdef __APPLE__
-    if (wnd) {
-        SDL_SysWMinfo wmInfo;
-        SDL_VERSION(&wmInfo.version);
-        SDL_GetWindowWMInfo(wnd, &wmInfo);
-        float scale = Imgui_Metal_llgl_GetContentScale(wmInfo.info.cocoa.window);
-        this->size = LLGL::Extent2D(size.width * scale, size.height * scale);
-    }
+    SDL_GL_GetDrawableSize(wnd, (int*) &size.width, (int*) &size.height);
 #endif
 }
 
@@ -115,10 +109,7 @@ bool SDLSurface::ProcessEvents(LLGL::SwapChain* swapChain) {
         }
         if (event.type == SDL_WINDOWEVENT &&
             (event.window.event == SDL_WINDOWEVENT_RESIZED || event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)) {
-            int width;
-            int height;
-            SDL_GetWindowSize(wnd, &width, &height);
-            size = { (uint32_t) width, (uint32_t) height };
+            SDL_GL_GetDrawableSize(wnd, (int*) &size.width, (int*) &size.height);
             swapChain->ResizeBuffers(size);
         }
         ImGui_ImplSDL2_ProcessEvent(&event);
