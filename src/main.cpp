@@ -64,7 +64,7 @@ int main() {
         {
             llgl_cmdBuffer->BeginRenderPass(*llgl_swapChain);
             {
-                // llgl_cmdBuffer->Clear(LLGL::ClearFlags::Color, LLGL::ClearValue{ 0.0f, 0.2f, 0.2f, 1.0f });
+                llgl_cmdBuffer->Clear(LLGL::ClearFlags::Color, LLGL::ClearValue{ 0.0f, 0.2f, 0.2f, 1.0f });
 
                 // GUI Rendering with ImGui library
                 llgl_cmdBuffer->PushDebugGroup("RenderGUI");
