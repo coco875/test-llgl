@@ -207,7 +207,6 @@ void NewFrameImGui(LLGL::RenderSystemPtr& renderer, LLGL::CommandBuffer* cmdBuff
         default:
             break;
     }
-    ImGui::NewFrame();
 }
 
 void RenderImGui(ImDrawData* data, LLGL::RenderSystemPtr& renderer, LLGL::CommandBuffer* llgl_cmdBuffer) {

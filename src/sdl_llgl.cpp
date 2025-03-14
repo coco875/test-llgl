@@ -115,19 +115,10 @@ bool SDLSurface::ProcessEvents(LLGL::SwapChain* swapChain) {
         }
         if (event.type == SDL_WINDOWEVENT &&
             (event.window.event == SDL_WINDOWEVENT_RESIZED || event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)) {
-            uint32_t width = event.window.data1;
-            uint32_t height = event.window.data2;
-#ifdef __APPLE__
-            if (wnd) {
-                SDL_SysWMinfo wmInfo;
-                SDL_VERSION(&wmInfo.version);
-                SDL_GetWindowWMInfo(wnd, &wmInfo);
-                float scale = Imgui_Metal_llgl_GetContentScale(wmInfo.info.cocoa.window);
-                width *= scale;
-                height *= scale;
-            }
-#endif
-            size = { width, height };
+            int width;
+            int height;
+            SDL_GetWindowSize(wnd, &width, &height);
+            size = { (uint32_t) width, (uint32_t) height };
             swapChain->ResizeBuffers(size);
         }
         ImGui_ImplSDL2_ProcessEvent(&event);
