@@ -18,7 +18,7 @@ int main() {
     LLGL::Log::RegisterCallbackStd();
     LLGL::Log::Printf("Load: OpenGL\n");
 
-    int rendererID = LLGL::RendererID::Vulkan;
+    int rendererID = LLGL::RendererID::Metal;
 
 #ifndef __APPLE__
     SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11");
@@ -70,13 +70,14 @@ int main() {
                 llgl_cmdBuffer->PushDebugGroup("RenderGUI");
                 {
                     // Start the Dear ImGui frame
-                    NewFrameImGui(llgl_cmdBuffer, llgl_renderer);
+                    NewFrameImGui(llgl_renderer, llgl_cmdBuffer);
 
                     // Show ImGui's demo window
                     ImGui::ShowDemoWindow();
 
                     // GUI Rendering
-                    RenderImGui(llgl_renderer, llgl_cmdBuffer);
+                    ImGui::Render();
+                    RenderImGui(ImGui::GetDrawData(), llgl_renderer, llgl_cmdBuffer);
                 }
                 llgl_cmdBuffer->PopDebugGroup();
             }
