@@ -143,7 +143,7 @@ if(Vulkan_FOUND)
     target_link_libraries(ImGui PUBLIC ${Vulkan_LIBRARY})
 endif()
 if(WIN32)
-    target_link_libraries(ImGui PUBLIC SDL2::SDL2main)
+    target_link_libraries(ImGui PUBLIC SDL2::SDL2main SDL2::SDL2-static)
 endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ImGui)
