@@ -56,7 +56,7 @@ int main() {
 
     auto llgl_cmdBuffer = llgl_renderer->CreateCommandBuffer(LLGL::CommandBufferFlags::ImmediateSubmit);
 
-    InitImGui(*surface, llgl_renderer, llgl_swapChain);
+    InitImGui(*surface, llgl_renderer, llgl_swapChain, llgl_cmdBuffer);
 
     while (surface->ProcessEvents(llgl_swapChain)) {
         // Rendering
