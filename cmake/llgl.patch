@@ -11,3 +11,106 @@ index 9d38212c..8c294429 100644
  
  set( EXTERNAL_MODULE_DIR            "${PROJECT_SOURCE_DIR}/cmake"                   )
  set( PROJECT_INCLUDE_DIR            "${PROJECT_SOURCE_DIR}/include"                 )
+diff --git a/include/LLGL/Platform/Win32/Win32NativeHandle.h b/include/LLGL/Platform/Win32/Win32NativeHandle.h
+index e6ac30ab..b035cc1d 100644
+--- a/include/LLGL/Platform/Win32/Win32NativeHandle.h
++++ b/include/LLGL/Platform/Win32/Win32NativeHandle.h
+@@ -25,6 +25,7 @@ namespace LLGL
+ struct NativeHandle
+ {
+     HWND window;
++    HDC hdc;
+ };
+ 
+ 
+diff --git a/llgl.patch b/llgl.patch
+index 6b5637c4..e69de29b 100644
+--- a/llgl.patch
++++ b/llgl.patch
+@@ -1,13 +0,0 @@
+-diff --git a/CMakeLists.txt b/CMakeLists.txt
+-index 9d38212c..8c294429 100644
+---- a/CMakeLists.txt
+-+++ b/CMakeLists.txt
+-@@ -76,7 +76,7 @@ endif()
+- 
+- # === Build path ===
+- 
+--set(LLGL_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/build" CACHE PATH "Override binary output directory")
+-+# set(LLGL_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/build" CACHE PATH "Override binary output directory")
+- 
+- set( EXTERNAL_MODULE_DIR            "${PROJECT_SOURCE_DIR}/cmake"                   )
+- set( PROJECT_INCLUDE_DIR            "${PROJECT_SOURCE_DIR}/include"                 )
+diff --git a/sources/Platform/Win32/Win32Window.cpp b/sources/Platform/Win32/Win32Window.cpp
+index d0d4aa0b..18cc38cd 100644
+--- a/sources/Platform/Win32/Win32Window.cpp
++++ b/sources/Platform/Win32/Win32Window.cpp
+@@ -148,7 +148,8 @@ std::unique_ptr<Window> Window::Create(const WindowDescriptor& desc)
+ }
+ 
+ Win32Window::Win32Window(const WindowDescriptor& desc) :
+-    wnd_ { CreateWindowHandle(desc) }
++    wnd_ { CreateWindowHandle(desc) },
++    hdc_ { GetDC(wnd_) }
+ {
+ }
+ 
+@@ -163,6 +164,7 @@ bool Win32Window::GetNativeHandle(void* nativeHandle, std::size_t nativeHandleSi
+     {
+         auto* handle = static_cast<NativeHandle*>(nativeHandle);
+         handle->window = wnd_;
++        handle->hdc   = hdc_;
+         return true;
+     }
+     return false;
+diff --git a/sources/Platform/Win32/Win32Window.h b/sources/Platform/Win32/Win32Window.h
+index 7347d587..9bc6288c 100644
+--- a/sources/Platform/Win32/Win32Window.h
++++ b/sources/Platform/Win32/Win32Window.h
+@@ -44,6 +44,7 @@ class Win32Window final : public Window
+         WindowDescriptor    desc_;
+         HWND                parentWnd_          = nullptr;
+         HWND                wnd_                = nullptr;
++        HDC                 hdc_                = nullptr;
+ 
+ };
+ 
+diff --git a/sources/Renderer/OpenGL/Platform/Win32/Win32GLContext.cpp b/sources/Renderer/OpenGL/Platform/Win32/Win32GLContext.cpp
+index 68bb8fea..5e147756 100644
+--- a/sources/Renderer/OpenGL/Platform/Win32/Win32GLContext.cpp
++++ b/sources/Renderer/OpenGL/Platform/Win32/Win32GLContext.cpp
+@@ -192,7 +192,7 @@ static HDC GetWin32DeviceContext(Surface& surface)
+     NativeHandle nativeHandle = {};
+     if (!surface.GetNativeHandle(&nativeHandle, sizeof(nativeHandle)))
+         LLGL_TRAP("invalid native Win32 window handle");
+-    return ::GetDC(nativeHandle.window);
++    return nativeHandle.hdc;
+ }
+ 
+ void Win32GLContext::CreateProxyContext(Surface& surface, const OpenGL::RenderSystemNativeHandle& nativeHandle)
+diff --git a/sources/Renderer/OpenGL/Platform/Win32/Win32GLSwapChainContext.cpp b/sources/Renderer/OpenGL/Platform/Win32/Win32GLSwapChainContext.cpp
+index 42b8a06e..4c15b041 100644
+--- a/sources/Renderer/OpenGL/Platform/Win32/Win32GLSwapChainContext.cpp
++++ b/sources/Renderer/OpenGL/Platform/Win32/Win32GLSwapChainContext.cpp
+@@ -42,7 +42,7 @@ Win32GLSwapChainContext::Win32GLSwapChainContext(Win32GLContext& context, Surfac
+     /* Get native window handle */
+     NativeHandle nativeHandle = {};
+     if (surface.GetNativeHandle(&nativeHandle, sizeof(nativeHandle)))
+-        hDC_ = ::GetDC(nativeHandle.window);
++        hDC_ = nativeHandle.hdc;
+     else
+         LLGL_TRAP("failed to get Win32 device context (HDC) from swap-chain surface");
+ 
+diff --git a/tests/Test_OpenGL.cpp b/tests/Test_OpenGL.cpp
+index 83d24b96..bf5d7c93 100644
+--- a/tests/Test_OpenGL.cpp
++++ b/tests/Test_OpenGL.cpp
+@@ -52,7 +52,7 @@ int main()
+         LLGL::NativeHandle nativeWndHandle = {};
+         window->GetNativeHandle(&nativeWndHandle, sizeof(nativeWndHandle));
+ 
+-        HDC dc = ::GetDC(nativeWndHandle.window);
++        HDC dc = nativeWndHandle.hdc;
+ 
+         PIXELFORMATDESCRIPTOR pfd = {};
+         pfd.nSize           = sizeof(PIXELFORMATDESCRIPTOR);

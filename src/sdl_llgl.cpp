@@ -80,6 +80,7 @@ bool SDLSurface::GetNativeHandle(void* nativeHandle, std::size_t nativeHandleSiz
     auto* nativeHandlePtr = static_cast<LLGL::NativeHandle*>(nativeHandle);
 #ifdef WIN32
     nativeHandlePtr->window = wmInfo.info.win.window;
+    nativeHandlePtr->hdc = wmInfo.info.win.hdc;
 #elif defined(__APPLE__)
     nativeHandlePtr->responder = wmInfo.info.cocoa.window;
 #else
