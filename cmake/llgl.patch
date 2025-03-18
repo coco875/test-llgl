@@ -1,8 +1,8 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 9d38212c..8c294429 100644
+index c9217d14..68b8594c 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -76,7 +76,7 @@ endif()
+@@ -90,7 +90,7 @@ endif()
  
  # === Build path ===
  
@@ -24,20 +24,20 @@ index e6ac30ab..b035cc1d 100644
  
  
 diff --git a/sources/Platform/Win32/Win32Window.cpp b/sources/Platform/Win32/Win32Window.cpp
-index d0d4aa0b..18cc38cd 100644
+index 86722e52..816432bc 100644
 --- a/sources/Platform/Win32/Win32Window.cpp
 +++ b/sources/Platform/Win32/Win32Window.cpp
-@@ -148,7 +148,8 @@ std::unique_ptr<Window> Window::Create(const WindowDescriptor& desc)
- }
+@@ -149,7 +149,8 @@ std::unique_ptr<Window> Window::Create(const WindowDescriptor& desc)
  
  Win32Window::Win32Window(const WindowDescriptor& desc) :
--    wnd_ { CreateWindowHandle(desc) }
-+    wnd_ { CreateWindowHandle(desc) },
+     wnd_   { CreateWindowHandle(desc) },
+-    flags_ { desc.flags               }
++    flags_ { desc.flags               },
 +    hdc_ { GetDC(wnd_) }
  {
  }
  
-@@ -163,6 +164,7 @@ bool Win32Window::GetNativeHandle(void* nativeHandle, std::size_t nativeHandleSi
+@@ -164,6 +165,7 @@ bool Win32Window::GetNativeHandle(void* nativeHandle, std::size_t nativeHandleSi
      {
          auto* handle = static_cast<NativeHandle*>(nativeHandle);
          handle->window = wnd_;
@@ -46,13 +46,13 @@ index d0d4aa0b..18cc38cd 100644
      }
      return false;
 diff --git a/sources/Platform/Win32/Win32Window.h b/sources/Platform/Win32/Win32Window.h
-index 7347d587..9bc6288c 100644
+index 3e54c2be..c0dbe266 100644
 --- a/sources/Platform/Win32/Win32Window.h
 +++ b/sources/Platform/Win32/Win32Window.h
-@@ -44,6 +44,7 @@ class Win32Window final : public Window
-         WindowDescriptor    desc_;
-         HWND                parentWnd_          = nullptr;
-         HWND                wnd_                = nullptr;
+@@ -48,6 +48,7 @@ class Win32Window final : public Window
+         HWND    parentWnd_  = nullptr;
+         HWND    wnd_        = nullptr;
+         long    flags_      = 0;
 +        HDC                 hdc_                = nullptr;
  
  };
@@ -84,10 +84,10 @@ index 42b8a06e..4c15b041 100644
          LLGL_TRAP("failed to get Win32 device context (HDC) from swap-chain surface");
  
 diff --git a/tests/Test_OpenGL.cpp b/tests/Test_OpenGL.cpp
-index 83d24b96..bf5d7c93 100644
+index da251f94..ba360f58 100644
 --- a/tests/Test_OpenGL.cpp
 +++ b/tests/Test_OpenGL.cpp
-@@ -52,7 +52,7 @@ int main()
+@@ -53,7 +53,7 @@ int main()
          LLGL::NativeHandle nativeWndHandle = {};
          window->GetNativeHandle(&nativeWndHandle, sizeof(nativeWndHandle));
  
