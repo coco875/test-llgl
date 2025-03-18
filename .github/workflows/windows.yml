@@ -19,7 +19,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-llgl-windows-x64
-          path: build/x64/Debug/prism.exe
+          path: build/x64/Debug/Test-LLGL.exe
       - name: Test
         continue-on-error: true
         run: |
