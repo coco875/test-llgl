@@ -42,7 +42,7 @@ endif()
 target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL2_LIBRARIES})
 
-find_package(Vulkan REQUIRED)
+find_package(Vulkan QUIET)
 if(Vulkan_FOUND)
     include_directories(${Vulkan_INCLUDE_DIR})
     target_link_libraries(${PROJECT_NAME} PRIVATE ${Vulkan_LIBRARY})
