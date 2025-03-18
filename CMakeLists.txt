@@ -16,6 +16,7 @@ file(GLOB_RECURSE ALL_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
 
 if(APPLE)
     enable_language(OBJCXX)
+    enable_language(OBJC)
     file(GLOB_RECURSE APPLE_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
         "src/*.mm"
     )
