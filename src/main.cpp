@@ -18,7 +18,7 @@ int main() {
     LLGL::Log::RegisterCallbackStd();
     LLGL::Log::Printf("Load: OpenGL\n");
 
-    int rendererID = LLGL::RendererID::Metal;
+    int rendererID = LLGL::RendererID::OpenGL;
 
 #ifndef __APPLE__
     SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11");
