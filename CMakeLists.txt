@@ -42,6 +42,12 @@ endif()
 target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL2_LIBRARIES})
 
+find_package(Vulkan REQUIRED)
+if(Vulkan_FOUND)
+    include_directories(${Vulkan_INCLUDE_DIR})
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${Vulkan_LIBRARY})
+endif()
+
 # Add the LLGL library
 set(LLGL_BUILD_EXAMPLES OFF)
 set(LLGL_BUILD_RENDERER_NULL OFF)
@@ -49,7 +55,11 @@ set(LLGL_BUILD_RENDERER_OPENGL ON)
 set(LLGL_GL_ENABLE_DSA_EXT ON)
 set(LLGL_GL_ENABLE_VENDOR_EXT ON)
 set(LLGL_GL_INCLUDE_EXTERNAL ON)
+if (Vulkan_FOUND)
 set(LLGL_BUILD_RENDERER_VULKAN ON)
+else()
+set(LLGL_BUILD_RENDERER_VULKAN OFF)
+endif()
 
 set(LLGL_OUTPUT_DIR ${CMAKE_BINARY_DIR})
 
@@ -94,8 +104,14 @@ target_sources(ImGui
     PRIVATE
     ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
 )
+
+if(Vulkan_FOUND)
+    target_sources(ImGui
+        PRIVATE
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
+    )
+endif()
 
 target_include_directories(ImGui PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends PRIVATE ${SDL2_INCLUDE_DIRS})
 
@@ -105,12 +121,4 @@ target_link_libraries(${PROJECT_NAME} PUBLIC ImGui)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
     include(cmake/mac.cmake)
-endif()
-
-find_package(Vulkan REQUIRED)
-if(Vulkan_FOUND)
-    include_directories(${Vulkan_INCLUDE_DIR})
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${Vulkan_LIBRARY})
-else()
-    message(FATAL_ERROR "LLGL_BUILD_RENDERER_VULKAN failed: missing Vulkan libraries")
 endif()
