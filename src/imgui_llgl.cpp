@@ -115,7 +115,8 @@ static VkRenderPass CreateVulkanRenderPass(VkDevice vulkanDevice, LLGL::SwapChai
 }
 #endif
 
-void InitImGui(SDLSurface& wnd, LLGL::RenderSystemPtr& renderer, LLGL::SwapChain* swapChain) {
+void InitImGui(SDLSurface& wnd, LLGL::RenderSystemPtr& renderer, LLGL::SwapChain* swapChain,
+               LLGL::CommandBuffer* cmdBuffer) {
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
