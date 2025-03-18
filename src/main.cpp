@@ -14,7 +14,15 @@
 #include "sdl_llgl.h"
 #include "imgui_llgl.h"
 
-int main() {
+#ifdef _WIN32
+int SDL_main(int argc, char** argv) {
+#else
+#if defined(__cplusplus) && defined(PLATFORM_IOS)
+extern "C"
+#endif
+    int
+    main(int argc, char* argv[]) {
+#endif
     LLGL::Log::RegisterCallbackStd();
     LLGL::Log::Printf("Load: OpenGL\n");
 
