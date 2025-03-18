@@ -53,9 +53,6 @@ find_package(OpenGL REQUIRED)
 if(OPENGL_FOUND)
     include_directories(${OPENGL_INCLUDE_DIR})
     target_link_libraries(${PROJECT_NAME} PRIVATE ${OPENGL_LIBRARIES})
-    if(WIN32)
-        include_directories("${EXTERNAL_INCLUDE_DIR}/OpenGL/include")
-    endif()
 else()
     message(FATAL_ERROR "LLGL_BUILD_RENDERER_OPENGL failed: missing OpenGL libraries")
 endif()
@@ -90,6 +87,10 @@ FetchContent_MakeAvailable(llgl)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE LLGL)
 target_include_directories(${PROJECT_NAME} PRIVATE ${llgl_SOURCE_DIR})
+
+if(WIN32)
+    include_directories("${EXTERNAL_INCLUDE_DIR}/OpenGL/include")
+endif()
 
 #=================== ImGui ===================
 FetchContent_Declare(
