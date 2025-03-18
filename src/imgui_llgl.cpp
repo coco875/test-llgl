@@ -15,7 +15,9 @@
 #endif
 
 #include <LLGL/Backend/OpenGL/NativeHandle.h>
+#ifdef LLGL_BUILD_RENDERER_VULKAN
 #include <LLGL/Backend/Vulkan/NativeHandle.h>
+#endif
 #ifdef __APPLE__
 #include <LLGL/Backend/Metal/NativeHandle.h>
 #endif

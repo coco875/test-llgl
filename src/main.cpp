@@ -5,7 +5,7 @@
 
 #include <LLGL/LLGL.h>
 
-#ifndef __APPLE__
+#ifdef LLGL_OS_LINUX
 #include <GL/glx.h>
 #endif
 
@@ -20,7 +20,7 @@ int main() {
 
     int rendererID = LLGL::RendererID::OpenGL;
 
-#ifndef __APPLE__
+#ifdef LLGL_OS_LINUX
     SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11");
 #endif
 

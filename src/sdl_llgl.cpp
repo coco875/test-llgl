@@ -40,21 +40,19 @@ SDLSurface::SDLSurface(const LLGL::Extent2D& size, const char* title, int render
             SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
             SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-            SDL_GL_GetDrawableSize(wnd, (int*) &size.width, (int*) &size.height);
+            // Init LLGL
+            desc = { "OpenGL" };
 
+#ifdef LLGL_OS_LINUX
             SDL_GLContext ctx = SDL_GL_CreateContext(wnd);
 
             SDL_GL_MakeCurrent(wnd, ctx);
 
-            // Init LLGL
-            desc = { "OpenGL" };
-#ifndef __APPLE__
             auto handle = LLGL::OpenGL::RenderSystemNativeHandle{ (GLXContext) ctx };
-#else
-            auto handle = LLGL::OpenGL::RenderSystemNativeHandle{ (void*) ctx };
-#endif
+
             desc.nativeHandle = (void*) &handle;
             desc.nativeHandleSize = sizeof(LLGL::OpenGL::RenderSystemNativeHandle);
+#endif
             break;
         }
         case LLGL::RendererID::Vulkan:
@@ -80,7 +78,9 @@ bool SDLSurface::GetNativeHandle(void* nativeHandle, std::size_t nativeHandleSiz
     SDL_VERSION(&wmInfo.version);
     SDL_GetWindowWMInfo(wnd, &wmInfo);
     auto* nativeHandlePtr = static_cast<LLGL::NativeHandle*>(nativeHandle);
-#ifdef __APPLE__
+#ifdef WIN32
+    nativeHandlePtr->window = wmInfo.info.win.window;
+#elif defined(__APPLE__)
     nativeHandlePtr->responder = wmInfo.info.cocoa.window;
 #else
     nativeHandlePtr->display = wmInfo.info.x11.display;
