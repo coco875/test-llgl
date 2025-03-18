@@ -143,7 +143,33 @@ if(Vulkan_FOUND)
     target_link_libraries(ImGui PUBLIC ${Vulkan_LIBRARY})
 endif()
 if(WIN32)
-    target_link_libraries(ImGui PUBLIC SDL2::SDL2main SDL2::SDL2-static)
+    target_link_libraries(ImGui PUBLIC SDL2::SDL2main)
+endif()
+
+if(MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Debug>:
+            /Od;
+            /Oi-
+        >
+        $<$<CONFIG:Release>:
+            /Oi;
+            /Gy
+        >
+        /permissive-;
+        /MP;
+        /sdl;
+        /W3;
+        ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
+        ${DEFAULT_CXX_EXCEPTION_HANDLING};
+    )
+    target_link_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Release>:
+            /OPT:REF;
+            /OPT:ICF
+        >
+        /SUBSYSTEM:CONSOLE
+    )
 endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ImGui)
