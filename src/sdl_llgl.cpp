@@ -6,6 +6,10 @@
 
 #include "sdl_llgl.h"
 
+#ifdef LLGL_OS_LINUX
+LLGL::OpenGL::RenderSystemNativeHandle handle;
+#endif
+
 SDLSurface::SDLSurface(const LLGL::Extent2D& size, const char* title, int rendererID,
                        LLGL::RenderSystemDescriptor& desc)
     : title_{ title }, size{ size } {
@@ -36,10 +40,6 @@ SDLSurface::SDLSurface(const LLGL::Extent2D& size, const char* title, int render
     switch (rendererID) {
         case LLGL::RendererID::OpenGL:
         case LLGL::RendererID::OpenGLES: {
-            SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-            SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-            SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-
             // Init LLGL
             desc = { "OpenGL" };
 
@@ -48,7 +48,7 @@ SDLSurface::SDLSurface(const LLGL::Extent2D& size, const char* title, int render
 
             SDL_GL_MakeCurrent(wnd, ctx);
 
-            auto handle = LLGL::OpenGL::RenderSystemNativeHandle{ (GLXContext) ctx };
+            handle = LLGL::OpenGL::RenderSystemNativeHandle{ (GLXContext) ctx };
 
             desc.nativeHandle = (void*) &handle;
             desc.nativeHandleSize = sizeof(LLGL::OpenGL::RenderSystemNativeHandle);
