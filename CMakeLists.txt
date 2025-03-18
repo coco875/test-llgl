@@ -89,6 +89,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE LLGL)
 target_include_directories(${PROJECT_NAME} PRIVATE ${llgl_SOURCE_DIR})
 
 if(WIN32)
+    set(EXTERNAL_INCLUDE_DIR "${llgl_SOURCE_DIR}/external")
     include_directories("${EXTERNAL_INCLUDE_DIR}/OpenGL/include")
 endif()
 
