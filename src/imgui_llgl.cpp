@@ -12,6 +12,7 @@
 #endif
 #ifdef WIN32
 #include "imgui_impl_dx11.h"
+#include "imgui_impl_dx12.h"
 #endif
 
 #include <LLGL/Backend/OpenGL/NativeHandle.h>
@@ -20,6 +21,10 @@
 #endif
 #ifdef __APPLE__
 #include <LLGL/Backend/Metal/NativeHandle.h>
+#endif
+#ifdef WIN32
+#include <LLGL/Backend/Direct3D11/NativeHandle.h>
+#include <LLGL/Backend/Direct3D12/NativeHandle.h>
 #endif
 
 #include <SDL2/SDL_video.h>
