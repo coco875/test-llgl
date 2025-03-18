@@ -47,6 +47,7 @@ find_package(Vulkan QUIET)
 if(Vulkan_FOUND)
     include_directories(${Vulkan_INCLUDE_DIR})
     target_link_libraries(${PROJECT_NAME} PRIVATE ${Vulkan_LIBRARY})
+    target_compile_definitions(${PROJECT_NAME} PRIVATE LLGL_BUILD_RENDERER_VULKAN)
 endif()
 
 find_package(OpenGL REQUIRED)

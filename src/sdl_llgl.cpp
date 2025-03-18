@@ -4,6 +4,7 @@
 
 #include "imgui_impl_sdl2.h"
 
+#include <SDL2/SDL_syswm.h>
 #include "sdl_llgl.h"
 
 #ifdef LLGL_OS_LINUX
