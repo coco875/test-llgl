@@ -23,24 +23,6 @@ index e6ac30ab..b035cc1d 100644
  };
  
  
-diff --git a/llgl.patch b/llgl.patch
-index 6b5637c4..e69de29b 100644
---- a/llgl.patch
-+++ b/llgl.patch
-@@ -1,13 +0,0 @@
--diff --git a/CMakeLists.txt b/CMakeLists.txt
--index 9d38212c..8c294429 100644
----- a/CMakeLists.txt
--+++ b/CMakeLists.txt
--@@ -76,7 +76,7 @@ endif()
-- 
-- # === Build path ===
-- 
---set(LLGL_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/build" CACHE PATH "Override binary output directory")
--+# set(LLGL_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/build" CACHE PATH "Override binary output directory")
-- 
-- set( EXTERNAL_MODULE_DIR            "${PROJECT_SOURCE_DIR}/cmake"                   )
-- set( PROJECT_INCLUDE_DIR            "${PROJECT_SOURCE_DIR}/include"                 )
 diff --git a/sources/Platform/Win32/Win32Window.cpp b/sources/Platform/Win32/Win32Window.cpp
 index d0d4aa0b..18cc38cd 100644
 --- a/sources/Platform/Win32/Win32Window.cpp
