@@ -49,6 +49,14 @@ if(Vulkan_FOUND)
     target_link_libraries(${PROJECT_NAME} PRIVATE ${Vulkan_LIBRARY})
 endif()
 
+find_package(OpenGL REQUIRED)
+if(OPENGL_FOUND)
+    include_directories(${OPENGL_INCLUDE_DIR})
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${OPENGL_LIBRARIES})
+else()
+    message(FATAL_ERROR "LLGL_BUILD_RENDERER_OPENGL failed: missing OpenGL libraries")
+endif()
+
 # Add the LLGL library
 set(LLGL_BUILD_EXAMPLES OFF)
 set(LLGL_BUILD_RENDERER_NULL OFF)
