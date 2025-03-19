@@ -1,3 +1,17 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index abb54505..fd08488d 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -238,7 +238,7 @@ if(NOT COMMAND find_host_program)
+ endif()
+ 
+ # Tests require Python3
+-find_host_package(Python3 REQUIRED)
++# find_host_package(Python3 REQUIRED)
+ 
+ # Check for symbol exports on Linux.
+ # At the moment, this check will fail on the OSX build machines for the Android NDK.
+
 diff --git a/tools/diff/diff.cpp b/tools/diff/diff.cpp
 index d60edb2e..284e22d4 100644
 --- a/tools/diff/diff.cpp
