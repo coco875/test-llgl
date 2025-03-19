@@ -110,6 +110,38 @@ endif()
 target_link_libraries(${PROJECT_NAME} PUBLIC LLGL)
 target_include_directories(${PROJECT_NAME} PUBLIC ${llgl_SOURCE_DIR})
 
+#=================== SPIRV-HEADERS ===================
+find_package(spirv-headers QUIET)
+if(NOT spirv-headers_FOUND)
+    FetchContent_Declare(
+        spirv-headers
+        GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Headers.git
+        GIT_TAG vulkan-sdk-1.4.309.0
+    )
+    FetchContent_MakeAvailable(spirv-headers)
+endif()
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${spirv-headers_SOURCE_DIR}/include)
+
+#=================== spirv-tools ===================
+set(spirv_tools_patch_file ${CMAKE_CURRENT_SOURCE_DIR}/cmake/spirv-fix.patch)
+
+# Applies the patch or checks if it has already been applied successfully previously. Will error otherwise.
+set(spirv_tools_apply_patch_if_needed git apply ${spirv_tools_patch_file} ${git_hide_output} || git apply --reverse --check ${spirv_tools_patch_file})
+
+find_package(spirv-tools QUIET)
+if(NOT spirv-tools_FOUND)
+    FetchContent_Declare(
+        spirv-tools
+        GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Tools.git
+        GIT_TAG vulkan-sdk-1.4.309.0
+    )
+    FetchContent_MakeAvailable(spirv-tools)
+endif()
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${spirv-tools_SOURCE_DIR}/include)
+target_link_libraries(${PROJECT_NAME} PRIVATE SPIRV-Tools)
+
 #=================== glslang ===================
 find_package(glslang QUIET)
 if(NOT glslang_FOUND)

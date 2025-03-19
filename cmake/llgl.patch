@@ -1,7 +1,16 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index c9217d14..68b8594c 100644
+index c9217d14..2ff5525c 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
+@@ -16,7 +16,7 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.16")
+     if(APPLE)
+         project(LLGL LANGUAGES C CXX OBJC OBJCXX)
+     elseif(WIN32)
+-        project(LLGL LANGUAGES C CXX CSharp)
++        project(LLGL LANGUAGES C CXX)
+     else()
+         project(LLGL LANGUAGES C CXX)
+     endif()
 @@ -90,7 +90,7 @@ endif()
  
  # === Build path ===

@@ -1,0 +1,15 @@
+diff --git a/tools/diff/diff.cpp b/tools/diff/diff.cpp
+index d60edb2e..284e22d4 100644
+--- a/tools/diff/diff.cpp
++++ b/tools/diff/diff.cpp
+@@ -87,8 +87,8 @@ std::unique_ptr<spvtools::opt::IRContext> load_module(const char* path) {
+     return spvtools::BuildModule(
+         kDefaultEnvironment, spvtools::utils::CLIMessageConsumer,
+         std::string(contents.begin(), contents.end()),
+-        spvtools::SpirvTools::kDefaultAssembleOption |
+-            SPV_TEXT_TO_BINARY_OPTION_PRESERVE_NUMERIC_IDS);
++        (int)spvtools::SpirvTools::kDefaultAssembleOption |
++            (int)SPV_TEXT_TO_BINARY_OPTION_PRESERVE_NUMERIC_IDS);
+   }
+ 
+   std::vector<uint32_t> contents;
