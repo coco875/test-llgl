@@ -150,6 +150,7 @@ void InitImGui(SDLSurface& wnd, LLGL::RenderSystemPtr& renderer, LLGL::SwapChain
 #endif
 #ifdef WIN32
         case LLGL::RendererID::Direct3D11:
+            ImGui_ImplSDL2_InitForD3D(wnd.wnd);
             // Setup renderer backend
             LLGL::Direct3D11::RenderSystemNativeHandle nativeDeviceHandle;
             renderer->GetNativeHandle(&nativeDeviceHandle, sizeof(nativeDeviceHandle));
