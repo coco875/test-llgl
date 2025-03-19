@@ -62,6 +62,12 @@ SDLSurface::SDLSurface(const LLGL::Extent2D& size, const char* title, int render
         case LLGL::RendererID::Metal:
             desc = { "Metal" };
             break;
+        case LLGL::RendererID::Direct3D11:
+            desc = { "Direct3D11" };
+            break;
+        case LLGL::RendererID::Direct3D12:
+            desc = { "Direct3D12" };
+            break;
         default:
             break;
     }
