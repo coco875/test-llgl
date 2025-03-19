@@ -87,8 +87,42 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(llgl)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE LLGL)
-target_include_directories(${PROJECT_NAME} PRIVATE ${llgl_SOURCE_DIR})
+if(LLGL_BUILD_RENDERER_VULKAN)
+target_link_libraries(LLGL LLGL_Vulkan)
+endif()
+
+if(LLGL_BUILD_RENDERER_OPENGL)
+target_link_libraries(LLGL LLGL_OpenGL)
+endif()
+
+if(LLGL_BUILD_RENDERER_DIRECT3D11)
+target_link_libraries(LLGL LLGL_Direct3D11)
+endif()
+
+if(LLGL_BUILD_RENDERER_DIRECT3D12)
+target_link_libraries(LLGL LLGL_Direct3D12)
+endif()
+
+if(LLGL_BUILD_RENDERER_METAL)
+target_link_libraries(LLGL LLGL_Metal)
+endif()
+
+target_link_libraries(${PROJECT_NAME} PUBLIC LLGL)
+target_include_directories(${PROJECT_NAME} PUBLIC ${llgl_SOURCE_DIR})
+
+#=================== glslang ===================
+find_package(glslang QUIET)
+if(NOT glslang_FOUND)
+    FetchContent_Declare(
+        glslang
+        GIT_REPOSITORY https://github.com/KhronosGroup/glslang.git
+        GIT_TAG vulkan-sdk-1.4.309.0
+    )
+    FetchContent_MakeAvailable(glslang)
+endif()
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${glslang_SOURCE_DIR}/glslang/Public)
+target_link_libraries(${PROJECT_NAME} PRIVATE glslang::glslang glslang::SPIRV)
 
 if(WIN32)
     set(EXTERNAL_INCLUDE_DIR "${llgl_SOURCE_DIR}/external")
