@@ -75,20 +75,16 @@ extern "C"
                 llgl_cmdBuffer->Clear(LLGL::ClearFlags::Color, LLGL::ClearValue{ 0.0f, 0.2f, 0.2f, 1.0f });
 
                 // GUI Rendering with ImGui library
-                llgl_cmdBuffer->PushDebugGroup("RenderGUI");
-                {
-                    // Start the Dear ImGui frame
-                    NewFrameImGui(llgl_renderer, llgl_cmdBuffer);
-                    ImGui::NewFrame();
+                // Start the Dear ImGui frame
+                NewFrameImGui(llgl_renderer, llgl_cmdBuffer);
+                ImGui::NewFrame();
 
-                    // Show ImGui's demo window
-                    ImGui::ShowDemoWindow();
+                // Show ImGui's demo window
+                ImGui::ShowDemoWindow();
 
-                    // GUI Rendering
-                    ImGui::Render();
-                    RenderImGui(ImGui::GetDrawData(), llgl_renderer, llgl_cmdBuffer);
-                }
-                llgl_cmdBuffer->PopDebugGroup();
+                // GUI Rendering
+                ImGui::Render();
+                RenderImGui(ImGui::GetDrawData(), llgl_renderer, llgl_cmdBuffer);
             }
             llgl_cmdBuffer->EndRenderPass();
         }
