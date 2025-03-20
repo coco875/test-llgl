@@ -33,7 +33,7 @@ if(WIN32)
 include(cmake/automate-vcpkg.cmake)
 
 vcpkg_bootstrap()
-vcpkg_install_packages(glslang spirv-cross)
+vcpkg_install_packages(glslang spirv-cross sdl2)
 endif()
 
 #=================== SDL2 ===================
