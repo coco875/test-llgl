@@ -36,9 +36,6 @@ vcpkg_bootstrap()
 vcpkg_install_packages(glslang spirv-cross)
 endif()
 
-find_package(glslang REQUIRED)
-# find_package(spirv-cross REQUIRED)
-
 #=================== SDL2 ===================
 find_package(SDL2 QUIET)
 if (NOT ${SDL2_FOUND})
@@ -99,6 +96,35 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(llgl)
 
+find_package(glslang REQUIRED)
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${glslang_SOURCE_DIR}/glslang/Public)
+target_link_libraries(${PROJECT_NAME} PRIVATE glslang::glslang glslang::SPIRV)
+
+find_package(spirv_cross_core REQUIRED)
+if(LLGL_BUILD_RENDERER_OPENGL)
+    find_package(spirv_cross_glsl REQUIRED)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${spirv_cross_glsl_SOURCE_DIR}/include)
+    target_link_libraries(${PROJECT_NAME} PRIVATE spirv-cross-glsl)
+endif()
+if(LLGL_BUILD_RENDERER_VULKAN OR LLGL_BUILD_RENDERER_DIRECT3D11 OR LLGL_BUILD_RENDERER_DIRECT3D12)
+    find_package(spirv_cross_hlsl REQUIRED)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${spirv_cross_hlsl_SOURCE_DIR}/include)
+    target_link_libraries(${PROJECT_NAME} PRIVATE spirv-cross-hlsl)
+endif()
+if(LLGL_BUILD_RENDERER_METAL)
+    find_package(spirv_cross_msl REQUIRED)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${spirv_cross_msl_SOURCE_DIR}/include)
+    target_link_libraries(${PROJECT_NAME} PRIVATE spirv-cross-msl)
+endif()
+find_package(spirv_cross_cpp REQUIRED)
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${spirv_cross_core_SOURCE_DIR}/include)
+target_include_directories(${PROJECT_NAME} PRIVATE ${spirv_cross_cpp_SOURCE_DIR}/include)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE spirv-cross-core)
+target_link_libraries(${PROJECT_NAME} PRIVATE spirv-cross-cpp)
+
 # if(LLGL_BUILD_RENDERER_VULKAN)
 # target_link_libraries(LLGL LLGL_Vulkan)
 # endif()
@@ -121,9 +147,6 @@ FetchContent_MakeAvailable(llgl)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC LLGL)
 target_include_directories(${PROJECT_NAME} PUBLIC ${llgl_SOURCE_DIR})
-
-target_include_directories(${PROJECT_NAME} PRIVATE ${glslang_SOURCE_DIR}/glslang/Public)
-target_link_libraries(${PROJECT_NAME} PRIVATE glslang::glslang glslang::SPIRV)
 
 if(WIN32)
     set(EXTERNAL_INCLUDE_DIR "${llgl_SOURCE_DIR}/external")
