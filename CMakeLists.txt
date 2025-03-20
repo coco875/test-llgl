@@ -32,13 +32,13 @@ add_executable(${PROJECT_NAME} ${ALL_FILES})
 if(WIN32)
 include(cmake/automate-vcpkg.cmake)
 
-if ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    set(VCPKG_TRIPLET x86-windows-static)
-    set(VCPKG_TARGET_TRIPLET x86-windows-static)
-elseif ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    set(VCPKG_TRIPLET x64-windows-static)
-    set(VCPKG_TARGET_TRIPLET x64-windows-static)
-endif()
+# if ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
+#     set(VCPKG_TRIPLET x86-windows-static)
+#     set(VCPKG_TARGET_TRIPLET x86-windows-static)
+# elseif ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
+#     set(VCPKG_TRIPLET x64-windows-static)
+#     set(VCPKG_TARGET_TRIPLET x64-windows-static)
+# endif()
 
 vcpkg_bootstrap()
 vcpkg_install_packages(glslang spirv-cross sdl2)
@@ -91,6 +91,10 @@ set(LLGL_BUILD_STATIC_LIB ON)
 set(LLGL_OUTPUT_DIR ${CMAKE_BINARY_DIR})
 
 set(llgl_patch_file ${CMAKE_CURRENT_SOURCE_DIR}/cmake/llgl.patch)
+
+if (CMAKE_GENERATOR MATCHES "Visual Studio")
+    set(git_hide_output 2> nul)
+endif()
 
 # Applies the patch or checks if it has already been applied successfully previously. Will error otherwise.
 set(llgl_apply_patch_if_needed git apply ${llgl_patch_file} ${git_hide_output} || git apply --reverse --check ${llgl_patch_file})
