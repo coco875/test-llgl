@@ -166,6 +166,14 @@ if(WIN32)
     include_directories("${EXTERNAL_INCLUDE_DIR}/OpenGL/include")
 endif()
 
+## VCPKG
+if(WIN32)
+include(cmake/automate-vcpkg.cmake)
+
+vcpkg_bootstrap()
+vcpkg_install_packages(glslang)
+endif()
+
 #=================== ImGui ===================
 FetchContent_Declare(
     ImGui
