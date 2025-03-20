@@ -95,8 +95,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(llgl)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC LLGL)
-
 if(LLGL_BUILD_RENDERER_VULKAN)
 target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_Vulkan)
 endif()
@@ -116,6 +114,8 @@ endif()
 if(LLGL_BUILD_RENDERER_METAL)
 target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_Metal)
 endif()
+
+target_link_libraries(${PROJECT_NAME} PUBLIC LLGL)
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${llgl_SOURCE_DIR})
 
