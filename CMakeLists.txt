@@ -99,7 +99,7 @@ FetchContent_Declare(
     llgl
     GIT_REPOSITORY https://github.com/LukasBanana/LLGL.git
     GIT_TAG ab3bdfdf8fd54adb998be3f655b75b93ec153df6
-    # PATCH_COMMAND ${llgl_apply_patch_if_needed}
+    PATCH_COMMAND ${llgl_apply_patch_if_needed}
 )
 FetchContent_MakeAvailable(llgl)
 
