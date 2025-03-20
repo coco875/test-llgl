@@ -41,7 +41,14 @@ include(cmake/automate-vcpkg.cmake)
 # endif()
 
 vcpkg_bootstrap()
-vcpkg_install_packages(glslang spirv-cross sdl2)
+vcpkg_install_packages(glslang spirv-cross sdl2[all])
+endif()
+
+find_package(Vulkan QUIET)
+if(Vulkan_FOUND)
+    include_directories(${Vulkan_INCLUDE_DIR})
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${Vulkan_LIBRARY})
+    target_compile_definitions(${PROJECT_NAME} PRIVATE LLGL_BUILD_RENDERER_VULKAN)
 endif()
 
 #=================== SDL2 ===================
@@ -58,13 +65,6 @@ endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL2_LIBRARIES})
-
-find_package(Vulkan QUIET)
-if(Vulkan_FOUND)
-    include_directories(${Vulkan_INCLUDE_DIR})
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${Vulkan_LIBRARY})
-    target_compile_definitions(${PROJECT_NAME} PRIVATE LLGL_BUILD_RENDERER_VULKAN)
-endif()
 
 find_package(OpenGL REQUIRED)
 if(OPENGL_FOUND)

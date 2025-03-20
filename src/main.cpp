@@ -159,7 +159,7 @@ extern "C"
 #endif
     LLGL::Log::RegisterCallbackStd();
 
-    int rendererID = LLGL::RendererID::OpenGL;
+    int rendererID = LLGL::RendererID::Vulkan;
 
 #ifdef LLGL_OS_LINUX
     SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11");
@@ -274,15 +274,15 @@ extern "C"
     fragShaderGlslang.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_6);
     fragShaderGlslang.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_4);
 
-    TBuiltInResource builtInResources = InitResources();
-    vertShaderGlslang.parse(&builtInResources, 120, true, EShMsgDefault);
-    fragShaderGlslang.parse(&builtInResources, 120, true, EShMsgDefault);
+    // TBuiltInResource builtInResources = InitResources();
+    // vertShaderGlslang.parse(&builtInResources, 120, true, EShMsgDefault);
+    // fragShaderGlslang.parse(&builtInResources, 120, true, EShMsgDefault);
 
-    glslang::TProgram program;
-    program.addShader(&vertShaderGlslang);
-    program.addShader(&fragShaderGlslang);
+    // glslang::TProgram program;
+    // program.addShader(&vertShaderGlslang);
+    // program.addShader(&fragShaderGlslang);
 
-    program.link(EShMsgDefault);
+    // program.link(EShMsgDefault);
 
     glslang::FinalizeProcess();
 
@@ -378,12 +378,12 @@ extern "C"
 #endif
 
     // Link shader program and check for errors
-    if (const LLGL::Report* report = pipeline->GetReport()) {
-        if (report->HasErrors()) {
-            LLGL::Log::Errorf("%s\n", report->GetText());
-            exit(1);
-        }
-    }
+    // if (const LLGL::Report* report = pipeline->GetReport()) {
+    //     if (report->HasErrors()) {
+    //         LLGL::Log::Errorf("%s\n", report->GetText());
+    //         exit(1);
+    //     }
+    // }
 
     auto llgl_cmdBuffer = llgl_renderer->CreateCommandBuffer(LLGL::CommandBufferFlags::ImmediateSubmit);
 
@@ -397,17 +397,17 @@ extern "C"
             llgl_cmdBuffer->SetViewport(llgl_swapChain->GetResolution());
 
             // Set vertex buffer
-            llgl_cmdBuffer->SetVertexBuffer(*vertexBuffer);
+            // llgl_cmdBuffer->SetVertexBuffer(*vertexBuffer);
 
             llgl_cmdBuffer->BeginRenderPass(*llgl_swapChain);
             {
                 llgl_cmdBuffer->Clear(LLGL::ClearFlags::Color, LLGL::ClearValue{ 0.0f, 0.2f, 0.2f, 1.0f });
 
                 // Set graphics pipeline
-                llgl_cmdBuffer->SetPipelineState(*pipeline);
+                // llgl_cmdBuffer->SetPipelineState(*pipeline);
 
                 // Draw triangle with 3 vertices
-                llgl_cmdBuffer->Draw(3, 0);
+                // llgl_cmdBuffer->Draw(3, 0);
 
                 // GUI Rendering with ImGui library
                 // Start the Dear ImGui frame
