@@ -28,6 +28,17 @@ endif()
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 
+## VCPKG
+if(WIN32)
+include(cmake/automate-vcpkg.cmake)
+
+vcpkg_bootstrap()
+vcpkg_install_packages(glslang spirv-cross)
+endif()
+
+find_package(glslang REQUIRED)
+# find_package(spirv-cross REQUIRED)
+
 #=================== SDL2 ===================
 find_package(SDL2 QUIET)
 if (NOT ${SDL2_FOUND})
@@ -70,7 +81,8 @@ set(LLGL_BUILD_RENDERER_VULKAN ON)
 else()
 set(LLGL_BUILD_RENDERER_VULKAN OFF)
 endif()
-set(LLGL_BUILD_STATIC_LIB ON)
+# make more problems
+# set(LLGL_BUILD_STATIC_LIB ON)
 
 set(LLGL_OUTPUT_DIR ${CMAKE_BINARY_DIR})
 
@@ -83,88 +95,32 @@ FetchContent_Declare(
     llgl
     GIT_REPOSITORY https://github.com/LukasBanana/LLGL.git
     GIT_TAG ab3bdfdf8fd54adb998be3f655b75b93ec153df6
-    # PATCH_COMMAND ${llgl_apply_patch_if_needed}
+    PATCH_COMMAND ${llgl_apply_patch_if_needed}
 )
 FetchContent_MakeAvailable(llgl)
 
-if(LLGL_BUILD_RENDERER_VULKAN)
-target_link_libraries(LLGL LLGL_Vulkan)
-endif()
+# if(LLGL_BUILD_RENDERER_VULKAN)
+# target_link_libraries(LLGL LLGL_Vulkan)
+# endif()
 
-if(LLGL_BUILD_RENDERER_OPENGL)
-target_link_libraries(LLGL LLGL_OpenGL)
-endif()
+# if(LLGL_BUILD_RENDERER_OPENGL)
+# target_link_libraries(LLGL LLGL_OpenGL)
+# endif()
 
-if(LLGL_BUILD_RENDERER_DIRECT3D11)
-target_link_libraries(LLGL LLGL_Direct3D11)
-endif()
+# if(LLGL_BUILD_RENDERER_DIRECT3D11)
+# target_link_libraries(LLGL LLGL_Direct3D11)
+# endif()
 
-if(LLGL_BUILD_RENDERER_DIRECT3D12)
-target_link_libraries(LLGL LLGL_Direct3D12)
-endif()
+# if(LLGL_BUILD_RENDERER_DIRECT3D12)
+# target_link_libraries(LLGL LLGL_Direct3D12)
+# endif()
 
-if(LLGL_BUILD_RENDERER_METAL)
-target_link_libraries(LLGL LLGL_Metal)
-endif()
+# if(LLGL_BUILD_RENDERER_METAL)
+# target_link_libraries(LLGL LLGL_Metal)
+# endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC LLGL)
 target_include_directories(${PROJECT_NAME} PUBLIC ${llgl_SOURCE_DIR})
-
-## VCPKG
-if(WIN32)
-include(cmake/automate-vcpkg.cmake)
-
-vcpkg_bootstrap()
-vcpkg_install_packages(glslang)
-endif()
-
-# #=================== SPIRV-HEADERS ===================
-# find_package(spirv-headers QUIET)
-# if(NOT spirv-headers_FOUND)
-#     FetchContent_Declare(
-#         spirv-headers
-#         GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Headers.git
-#         GIT_TAG vulkan-sdk-1.4.309.0
-#     )
-#     FetchContent_MakeAvailable(spirv-headers)
-# endif()
-
-# target_include_directories(${PROJECT_NAME} PRIVATE ${spirv-headers_SOURCE_DIR}/include)
-
-# #=================== spirv-tools ===================
-# set(spirv_tools_patch_file ${CMAKE_CURRENT_SOURCE_DIR}/cmake/spirv-fix.patch)
-
-# # Applies the patch or checks if it has already been applied successfully previously. Will error otherwise.
-# set(spirv_tools_apply_patch_if_needed git apply ${spirv_tools_patch_file} ${git_hide_output} || git apply --reverse --check ${spirv_tools_patch_file})
-
-# set(SPIRV_SKIP_TESTS ON)
-
-# find_package(spirv-tools QUIET)
-# if(NOT spirv-tools_FOUND)
-#     FetchContent_Declare(
-#         spirv-tools
-#         GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Tools.git
-#         GIT_TAG vulkan-sdk-1.4.309.0
-#         PATCH_COMMAND ${spirv_tools_apply_patch_if_needed}
-#     )
-#     FetchContent_MakeAvailable(spirv-tools)
-# endif()
-
-# target_include_directories(${PROJECT_NAME} PRIVATE ${spirv-tools_SOURCE_DIR}/include)
-
-#=================== glslang ===================
-
-set(ENABLE_GLSLANG_BINARIES OFF)
-
-find_package(glslang QUIET)
-if(NOT glslang_FOUND)
-    FetchContent_Declare(
-        glslang
-        GIT_REPOSITORY https://github.com/KhronosGroup/glslang.git
-        GIT_TAG vulkan-sdk-1.4.309.0
-    )
-    FetchContent_MakeAvailable(glslang)
-endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${glslang_SOURCE_DIR}/glslang/Public)
 target_link_libraries(${PROJECT_NAME} PRIVATE glslang::glslang glslang::SPIRV)
