@@ -110,6 +110,14 @@ endif()
 target_link_libraries(${PROJECT_NAME} PUBLIC LLGL)
 target_include_directories(${PROJECT_NAME} PUBLIC ${llgl_SOURCE_DIR})
 
+## VCPKG
+if(WIN32)
+include(cmake/automate-vcpkg.cmake)
+
+vcpkg_bootstrap()
+vcpkg_install_packages(glslang)
+endif()
+
 # #=================== SPIRV-HEADERS ===================
 # find_package(spirv-headers QUIET)
 # if(NOT spirv-headers_FOUND)
@@ -164,14 +172,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE glslang::glslang glslang::SPIRV)
 if(WIN32)
     set(EXTERNAL_INCLUDE_DIR "${llgl_SOURCE_DIR}/external")
     include_directories("${EXTERNAL_INCLUDE_DIR}/OpenGL/include")
-endif()
-
-## VCPKG
-if(WIN32)
-include(cmake/automate-vcpkg.cmake)
-
-vcpkg_bootstrap()
-vcpkg_install_packages(glslang)
 endif()
 
 #=================== ImGui ===================
