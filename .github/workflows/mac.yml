@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
-        run: brew install sdl2 libpng glew ninja libzip nlohmann-json tinyxml2 spdlog vulkan-tools
+        run: brew install sdl2 libpng glew ninja libzip nlohmann-json tinyxml2 spdlog vulkan-tools spirv-cross
       - name: Build
         run: |
           cmake -H. -Bbuild-cmake -GNinja -DCMAKE_BUILD_TYPE=Release
