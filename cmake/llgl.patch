@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index c9217d14..2ff5525c 100644
+index c9217d14..20f87e60 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -16,7 +16,7 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.16")
@@ -20,6 +20,19 @@ index c9217d14..2ff5525c 100644
  
  set( EXTERNAL_MODULE_DIR            "${PROJECT_SOURCE_DIR}/cmake"                   )
  set( PROJECT_INCLUDE_DIR            "${PROJECT_SOURCE_DIR}/include"                 )
+@@ -169,6 +169,12 @@ endif()
+ 
+ if(NOT LLGL_UWP_PLATFORM)
+     option(LLGL_BUILD_RENDERER_VULKAN "Include Vulkan renderer project (experimental)" OFF)
++    find_package(Vulkan QUIET)
++    if (Vulkan_FOUND)
++    set(LLGL_BUILD_RENDERER_VULKAN ON)
++    else()
++    set(LLGL_BUILD_RENDERER_VULKAN OFF)
++    endif()
+ endif()
+ 
+ if(WIN32)
 diff --git a/include/LLGL/Platform/Win32/Win32NativeHandle.h b/include/LLGL/Platform/Win32/Win32NativeHandle.h
 index e6ac30ab..b035cc1d 100644
 --- a/include/LLGL/Platform/Win32/Win32NativeHandle.h

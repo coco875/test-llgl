@@ -32,6 +32,14 @@ add_executable(${PROJECT_NAME} ${ALL_FILES})
 if(WIN32)
 include(cmake/automate-vcpkg.cmake)
 
+if ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
+    set(VCPKG_TRIPLET x86-windows-static)
+    set(VCPKG_TARGET_TRIPLET x86-windows-static)
+elseif ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
+    set(VCPKG_TRIPLET x64-windows-static)
+    set(VCPKG_TARGET_TRIPLET x64-windows-static)
+endif()
+
 vcpkg_bootstrap()
 vcpkg_install_packages(glslang spirv-cross sdl2)
 endif()
@@ -78,7 +86,7 @@ set(LLGL_BUILD_RENDERER_VULKAN ON)
 else()
 set(LLGL_BUILD_RENDERER_VULKAN OFF)
 endif()
-# set(LLGL_BUILD_STATIC_LIB ON)
+set(LLGL_BUILD_STATIC_LIB ON)
 
 set(LLGL_OUTPUT_DIR ${CMAKE_BINARY_DIR})
 
@@ -91,29 +99,29 @@ FetchContent_Declare(
     llgl
     GIT_REPOSITORY https://github.com/LukasBanana/LLGL.git
     GIT_TAG ab3bdfdf8fd54adb998be3f655b75b93ec153df6
-    PATCH_COMMAND ${llgl_apply_patch_if_needed}
+    # PATCH_COMMAND ${llgl_apply_patch_if_needed}
 )
 FetchContent_MakeAvailable(llgl)
 
-# if(LLGL_BUILD_RENDERER_VULKAN)
-# target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_Vulkan)
-# endif()
+if(LLGL_BUILD_RENDERER_VULKAN)
+target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_Vulkan)
+endif()
 
-# if(LLGL_BUILD_RENDERER_OPENGL)
-# target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_OpenGL)
-# endif()
+if(LLGL_BUILD_RENDERER_OPENGL)
+target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_OpenGL)
+endif()
 
-# if(LLGL_BUILD_RENDERER_DIRECT3D11)
-# target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_Direct3D11)
-# endif()
+if(LLGL_BUILD_RENDERER_DIRECT3D11)
+target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_Direct3D11)
+endif()
 
-# if(LLGL_BUILD_RENDERER_DIRECT3D12)
-# target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_Direct3D12)
-# endif()
+if(LLGL_BUILD_RENDERER_DIRECT3D12)
+target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_Direct3D12)
+endif()
 
-# if(LLGL_BUILD_RENDERER_METAL)
-# target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_Metal)
-# endif()
+if(LLGL_BUILD_RENDERER_METAL)
+target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_Metal)
+endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC LLGL)
 
