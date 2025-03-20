@@ -95,6 +95,30 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(llgl)
 
+target_link_libraries(${PROJECT_NAME} PUBLIC LLGL)
+
+if(LLGL_BUILD_RENDERER_VULKAN)
+target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_Vulkan)
+endif()
+
+if(LLGL_BUILD_RENDERER_OPENGL)
+target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_OpenGL)
+endif()
+
+if(LLGL_BUILD_RENDERER_DIRECT3D11)
+target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_Direct3D11)
+endif()
+
+if(LLGL_BUILD_RENDERER_DIRECT3D12)
+target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_Direct3D12)
+endif()
+
+if(LLGL_BUILD_RENDERER_METAL)
+target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_Metal)
+endif()
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${llgl_SOURCE_DIR})
+
 find_package(glslang REQUIRED)
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${glslang_SOURCE_DIR}/glslang/Public)
@@ -123,29 +147,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${spirv_cross_cpp_SOURCE_DIR}
 
 target_link_libraries(${PROJECT_NAME} PRIVATE spirv-cross-core)
 target_link_libraries(${PROJECT_NAME} PRIVATE spirv-cross-cpp)
-
-if(LLGL_BUILD_RENDERER_VULKAN)
-target_link_libraries(${PROJECT_NAME} LLGL_Vulkan)
-endif()
-
-if(LLGL_BUILD_RENDERER_OPENGL)
-target_link_libraries(${PROJECT_NAME} LLGL_OpenGL)
-endif()
-
-if(LLGL_BUILD_RENDERER_DIRECT3D11)
-target_link_libraries(${PROJECT_NAME} LLGL_Direct3D11)
-endif()
-
-if(LLGL_BUILD_RENDERER_DIRECT3D12)
-target_link_libraries(${PROJECT_NAME} LLGL_Direct3D12)
-endif()
-
-if(LLGL_BUILD_RENDERER_METAL)
-target_link_libraries(${PROJECT_NAME} LLGL_Metal)
-endif()
-
-target_link_libraries(${PROJECT_NAME} PUBLIC LLGL)
-target_include_directories(${PROJECT_NAME} PUBLIC ${llgl_SOURCE_DIR})
 
 if(WIN32)
     set(EXTERNAL_INCLUDE_DIR "${llgl_SOURCE_DIR}/external")
