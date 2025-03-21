@@ -159,7 +159,7 @@ extern "C"
 #endif
     LLGL::Log::RegisterCallbackStd();
 
-    int rendererID = LLGL::RendererID::Vulkan;
+    int rendererID = LLGL::RendererID::OpenGL;
 
 #ifdef LLGL_OS_LINUX
     SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11");

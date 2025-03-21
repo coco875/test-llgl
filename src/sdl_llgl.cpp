@@ -7,7 +7,7 @@
 #include <SDL2/SDL_syswm.h>
 #include "sdl_llgl.h"
 
-#ifdef LLGL_OS_LINUX
+#if defined(LLGL_OS_LINUX) || defined(WIN32)
 LLGL::OpenGL::RenderSystemNativeHandle handle;
 #endif
 
@@ -51,6 +51,15 @@ SDLSurface::SDLSurface(const LLGL::Extent2D& size, const char* title, int render
             SDL_GL_MakeCurrent(wnd, ctx);
 
             handle = LLGL::OpenGL::RenderSystemNativeHandle{ (GLXContext) ctx };
+
+            desc.nativeHandle = (void*) &handle;
+            desc.nativeHandleSize = sizeof(LLGL::OpenGL::RenderSystemNativeHandle);
+#elif defined(WIN32)
+            SDL_GLContext ctx = SDL_GL_CreateContext(wnd);
+
+            SDL_GL_MakeCurrent(wnd, ctx);
+
+            handle = LLGL::OpenGL::RenderSystemNativeHandle{ (HGLRC) ctx };
 
             desc.nativeHandle = (void*) &handle;
             desc.nativeHandleSize = sizeof(LLGL::OpenGL::RenderSystemNativeHandle);
