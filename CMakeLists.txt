@@ -41,7 +41,7 @@ include(cmake/automate-vcpkg.cmake)
 # endif()
 
 vcpkg_bootstrap()
-vcpkg_install_packages(glslang spirv-cross sdl2[all])
+vcpkg_install_packages(glslang spirv-cross sdl2)
 endif()
 
 find_package(Vulkan QUIET)
@@ -102,7 +102,7 @@ set(llgl_apply_patch_if_needed git apply ${llgl_patch_file} ${git_hide_output} |
 FetchContent_Declare(
     llgl
     GIT_REPOSITORY https://github.com/LukasBanana/LLGL.git
-    GIT_TAG ab3bdfdf8fd54adb998be3f655b75b93ec153df6
+    GIT_TAG 0c6213365e0552b568c1c78d4461439f0c0db716
     PATCH_COMMAND ${llgl_apply_patch_if_needed}
 )
 FetchContent_MakeAvailable(llgl)
