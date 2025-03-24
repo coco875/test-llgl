@@ -36,9 +36,9 @@
 #ifdef WIN32
 ID3D11Device* d3d11Device = nullptr;
 ID3D11DeviceContext* d3d11DeviceContext = nullptr;
-ID3D12Device* d3dDevice = nullptr;
-ID3D12DeviceContext* d3d12DeviceContext = nullptr;
+ID3D12Device* d3d12Device = nullptr;
 ID3D12CommandQueue* d3d12CommandQueue = nullptr;
+ID3D12GraphicsCommandList* d3d12CommandList = nullptr;
 
 static DXGI_FORMAT GetRTVFormat(LLGL::Format format) {
     switch (format) {
