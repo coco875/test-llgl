@@ -256,7 +256,7 @@ void InitImGui(SDLSurface& wnd, LLGL::RenderSystemPtr& renderer, LLGL::SwapChain
 
             ImGui_ImplDX11_Init(d3d11Device, d3d11DeviceContext);
             break;
-        case LLGL::RendererID::Direct3D12:
+        case LLGL::RendererID::Direct3D12: {
             ImGui_ImplSDL2_InitForD3D(wnd.wnd);
             // Create SRV descriptor heap for ImGui's internal resources
             LLGL::Direct3D12::RenderSystemNativeHandle nativeDeviceHandleD12;
@@ -292,6 +292,7 @@ void InitImGui(SDLSurface& wnd, LLGL::RenderSystemPtr& renderer, LLGL::SwapChain
             }
             ImGui_ImplDX12_Init(&imGuiInfo);
             break;
+        }
 #endif
 #ifdef LLGL_BUILD_RENDERER_VULKAN
         case LLGL::RendererID::Vulkan: {
@@ -377,12 +378,13 @@ void RenderImGui(ImDrawData* data, LLGL::RenderSystemPtr& renderer, LLGL::Comman
         case LLGL::RendererID::Direct3D11:
             ImGui_ImplDX11_RenderDrawData(data);
             break;
-        case LLGL::RendererID::Direct3D12:
+        case LLGL::RendererID::Direct3D12: {
             ID3D12DescriptorHeap* d3dHeap = g_heapAllocator->GetNative();
-            d3dCommandList->SetDescriptorHeaps(1, &d3dHeap);
+            d3d12CommandList->SetDescriptorHeaps(1, &d3dHeap);
 
-            ImGui_ImplDX12_RenderDrawData(data, d3dCommandList);
+            ImGui_ImplDX12_RenderDrawData(data, d3d12CommandList);
             break;
+        }
 #endif
 #ifdef LLGL_BUILD_RENDERER_VULKAN
         case LLGL::RendererID::Vulkan: {

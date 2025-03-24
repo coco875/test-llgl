@@ -30,7 +30,6 @@ add_executable(${PROJECT_NAME} ${ALL_FILES})
 
 ## VCPKG
 if(WIN32)
-set(X_VCPKG_APPLOCAL_DEPS_INSTALL ON)
 include(cmake/automate-vcpkg.cmake)
 
 # if ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
