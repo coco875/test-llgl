@@ -1,12 +1,16 @@
-// GLSL shader version 1.40 core (for OpenGL 3.1 Core Profile)
-#version 140
+// GLSL shader version 4.50 (for Vulkan)
+#version 450 core
 
 // Vertex attributes (these names must match our vertex format attributes)
-in vec2 position;
-in vec4 color;
+layout(location = 0) in vec2 position;
+layout(location = 1) in vec3 color;
 
 // Vertex output to the fragment shader
-out vec4 vertexColor;
+layout(location = 0) out vec3 vertexColor;
+
+out gl_PerVertex {
+    vec4 gl_Position;
+};
 
 // Vertex shader main function
 void main() {

@@ -1,13 +1,14 @@
-// GLSL shader version 1.40 (for OpenGL 3.1 Core Profile)
-#version 140
+// GLSL shader version 4.50 (for Vulkan)
+#version 450 core
 
 // Fragment input from the vertex shader
-in vec4 vertexColor;
+layout(location = 0) in vec3 vertexColor;
 
 // Fragment output color
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 // Fragment shader main function
-void main() {
-    fragColor = vertexColor;
+void main()
+{
+	fragColor = vec4(vertexColor, 1);
 }
