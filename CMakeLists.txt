@@ -42,7 +42,7 @@ include(cmake/automate-vcpkg.cmake)
 # endif()
 
 vcpkg_bootstrap()
-vcpkg_install_packages(glslang spirv-cross sdl2)
+vcpkg_install_packages(glslang spirv-cross sdl2 vulkan)
 endif()
 
 find_package(Vulkan QUIET)

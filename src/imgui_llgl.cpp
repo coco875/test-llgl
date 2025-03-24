@@ -246,9 +246,9 @@ void InitImGui(SDLSurface& wnd, LLGL::RenderSystemPtr& renderer, LLGL::SwapChain
         case LLGL::RendererID::Direct3D11:
             ImGui_ImplSDL2_InitForD3D(wnd.wnd);
             // Setup renderer backend
-            LLGL::Direct3D11::RenderSystemNativeHandle nativeDeviceHandle;
-            renderer->GetNativeHandle(&nativeDeviceHandle, sizeof(nativeDeviceHandle));
-            d3d11Device = nativeDeviceHandle.device;
+            LLGL::Direct3D11::RenderSystemNativeHandle nativeDeviceHandleD11;
+            renderer->GetNativeHandle(&nativeDeviceHandleD11, sizeof(nativeDeviceHandleD11));
+            d3d11Device = nativeDeviceHandleD11.device;
 
             LLGL::Direct3D11::CommandBufferNativeHandle nativeContextHandle;
             cmdBuffer->GetNativeHandle(&nativeContextHandle, sizeof(nativeContextHandle));
@@ -259,13 +259,13 @@ void InitImGui(SDLSurface& wnd, LLGL::RenderSystemPtr& renderer, LLGL::SwapChain
         case LLGL::RendererID::Direct3D12:
             ImGui_ImplSDL2_InitForD3D(wnd.wnd);
             // Create SRV descriptor heap for ImGui's internal resources
-            LLGL::Direct3D12::RenderSystemNativeHandle nativeDeviceHandle;
-            renderer->GetNativeHandle(&nativeDeviceHandle, sizeof(nativeDeviceHandle));
-            d3d12Device = nativeDeviceHandle.device;
-            d3d12CommandQueue = nativeDeviceHandle.commandQueue;
+            LLGL::Direct3D12::RenderSystemNativeHandle nativeDeviceHandleD12;
+            renderer->GetNativeHandle(&nativeDeviceHandleD12, sizeof(nativeDeviceHandleD12));
+            d3d12Device = nativeDeviceHandleD12.device;
+            d3d12CommandQueue = nativeDeviceHandleD12.commandQueue;
 
             g_heapAllocator = D3D12DescriptorHeapAllocatorPtr(
-                new D3D12DescriptorHeapAllocator{ d3dDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 64 });
+                new D3D12DescriptorHeapAllocator{ d3d12Device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 64 });
             // Setup renderer backend
             LLGL::Direct3D12::CommandBufferNativeHandle nativeContextHandle;
             cmdBuffer->GetNativeHandle(&nativeContextHandle, sizeof(nativeContextHandle));
