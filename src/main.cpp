@@ -259,8 +259,14 @@ extern "C"
     std::string vertShaderSource((std::istreambuf_iterator<char>(vertShaderFile)), std::istreambuf_iterator<char>());
     std::string fragShaderSource((std::istreambuf_iterator<char>(fragShaderFile)), std::istreambuf_iterator<char>());
 
-    vertShaderGlslang.addSourceText(vertShaderSource.c_str(), vertShaderSource.size());
-    fragShaderGlslang.addSourceText(fragShaderSource.c_str(), fragShaderSource.size());
+    // vertShaderGlslang.addSourceText(vertShaderSource.c_str(), vertShaderSource.size());
+    // fragShaderGlslang.addSourceText(fragShaderSource.c_str(), fragShaderSource.size());
+
+    char* vertShaderSourceC = vertShaderSource.data();
+    char* fragShaderSourceC = fragShaderSource.data();
+
+    vertShaderGlslang.setStrings(&vertShaderSourceC, 1);
+    fragShaderGlslang.setStrings(&fragShaderSourceC, 1);
 
     vertShaderGlslang.setSourceFile("../shader/test.vert");
     fragShaderGlslang.setSourceFile("../shader/test.frag");
@@ -274,9 +280,9 @@ extern "C"
     fragShaderGlslang.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_6);
     fragShaderGlslang.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_4);
 
-    // TBuiltInResource builtInResources = InitResources();
-    // vertShaderGlslang.parse(&builtInResources, 120, true, EShMsgDefault);
-    // fragShaderGlslang.parse(&builtInResources, 120, true, EShMsgDefault);
+    TBuiltInResource builtInResources = InitResources();
+    vertShaderGlslang.parse(&builtInResources, 120, true, EShMsgDefault);
+    fragShaderGlslang.parse(&builtInResources, 120, true, EShMsgDefault);
 
     // glslang::TProgram program;
     // program.addShader(&vertShaderGlslang);
