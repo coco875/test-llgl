@@ -34,9 +34,11 @@
 #include "imgui_llgl.h"
 
 #ifdef WIN32
-ID3D11Device* d3dDevice = nullptr;
-ID3D11DeviceContext* d3dDeviceContext = nullptr;
-ID3D12CommandQueue* d3dCommandQueue = nullptr;
+ID3D11Device* d3d11Device = nullptr;
+ID3D11DeviceContext* d3d11DeviceContext = nullptr;
+ID3D12Device* d3dDevice = nullptr;
+ID3D12DeviceContext* d3d12DeviceContext = nullptr;
+ID3D12CommandQueue* d3d12CommandQueue = nullptr;
 
 static DXGI_FORMAT GetRTVFormat(LLGL::Format format) {
     switch (format) {
@@ -246,34 +248,34 @@ void InitImGui(SDLSurface& wnd, LLGL::RenderSystemPtr& renderer, LLGL::SwapChain
             // Setup renderer backend
             LLGL::Direct3D11::RenderSystemNativeHandle nativeDeviceHandle;
             renderer->GetNativeHandle(&nativeDeviceHandle, sizeof(nativeDeviceHandle));
-            d3dDevice = nativeDeviceHandle.device;
+            d3d11Device = nativeDeviceHandle.device;
 
             LLGL::Direct3D11::CommandBufferNativeHandle nativeContextHandle;
             cmdBuffer->GetNativeHandle(&nativeContextHandle, sizeof(nativeContextHandle));
-            d3dDeviceContext = nativeContextHandle.deviceContext;
+            d3d11DeviceContext = nativeContextHandle.deviceContext;
 
-            ImGui_ImplDX11_Init(d3dDevice, d3dDeviceContext);
+            ImGui_ImplDX11_Init(d3d11Device, d3d11DeviceContext);
             break;
         case LLGL::RendererID::Direct3D12:
             ImGui_ImplSDL2_InitForD3D(wnd.wnd);
             // Create SRV descriptor heap for ImGui's internal resources
             LLGL::Direct3D12::RenderSystemNativeHandle nativeDeviceHandle;
             renderer->GetNativeHandle(&nativeDeviceHandle, sizeof(nativeDeviceHandle));
-            d3dDevice = nativeDeviceHandle.device;
-            d3dCommandQueue = nativeDeviceHandle.commandQueue;
+            d3d12Device = nativeDeviceHandle.device;
+            d3d12CommandQueue = nativeDeviceHandle.commandQueue;
 
             g_heapAllocator = D3D12DescriptorHeapAllocatorPtr(
                 new D3D12DescriptorHeapAllocator{ d3dDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 64 });
             // Setup renderer backend
             LLGL::Direct3D12::CommandBufferNativeHandle nativeContextHandle;
             cmdBuffer->GetNativeHandle(&nativeContextHandle, sizeof(nativeContextHandle));
-            d3dCommandList = nativeContextHandle.commandList;
+            d3d12CommandList = nativeContextHandle.commandList;
 
             // Initialize ImGui D3D12 backend
             ImGui_ImplDX12_InitInfo imGuiInfo = {};
             {
-                imGuiInfo.Device = d3dDevice;
-                imGuiInfo.CommandQueue = d3dCommandQueue;
+                imGuiInfo.Device = d3d12Device;
+                imGuiInfo.CommandQueue = d3d12CommandQueue;
                 imGuiInfo.NumFramesInFlight = 2;
                 imGuiInfo.RTVFormat = GetRTVFormat(g_swapChains.front()->GetColorFormat());
                 imGuiInfo.DSVFormat = GetDSVFormat(g_swapChains.front()->GetDepthStencilFormat());
