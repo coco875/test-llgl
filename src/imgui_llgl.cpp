@@ -291,6 +291,7 @@ void InitImGui(SDLSurface& wnd, LLGL::RenderSystemPtr& renderer, LLGL::SwapChain
                 };
             }
             ImGui_ImplDX12_Init(&imGuiInfo);
+            break;
 #endif
 #ifdef LLGL_BUILD_RENDERER_VULKAN
         case LLGL::RendererID::Vulkan: {
