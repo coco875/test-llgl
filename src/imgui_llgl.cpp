@@ -277,8 +277,8 @@ void InitImGui(SDLSurface& wnd, LLGL::RenderSystemPtr& renderer, LLGL::SwapChain
                 imGuiInfo.Device = d3d12Device;
                 imGuiInfo.CommandQueue = d3d12CommandQueue;
                 imGuiInfo.NumFramesInFlight = 2;
-                imGuiInfo.RTVFormat = GetRTVFormat(g_swapChains.front()->GetColorFormat());
-                imGuiInfo.DSVFormat = GetDSVFormat(g_swapChains.front()->GetDepthStencilFormat());
+                imGuiInfo.RTVFormat = GetRTVFormat(swapChain->GetColorFormat());
+                imGuiInfo.DSVFormat = GetDSVFormat(swapChain->GetDepthStencilFormat());
                 imGuiInfo.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* info,
                                                     D3D12_CPU_DESCRIPTOR_HANDLE* outCPUDescHandle,
                                                     D3D12_GPU_DESCRIPTOR_HANDLE* outGPUDescHandle) {
