@@ -134,7 +134,7 @@ glslang::TShader create_shader(EShLanguage type, std::filesystem::path shaderPat
 
     shaderGlslang.setStrings(&shaderSourceC, 1);
 
-    shaderGlslang.setSourceFile(shaderPath.c_str());
+    // shaderGlslang.setSourceFile(shaderPath.c_str());
 
     shaderGlslang.setEnvInput(glslang::EShSourceGlsl, type, glslang::EShClientVulkan, 100);
     shaderGlslang.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_5);
@@ -409,7 +409,7 @@ void generate_shader(LLGL::ShaderDescriptor& vertShaderDesc, LLGL::ShaderDescrip
         LLGL::Log::Printf("GLSL ES:\n%s\n", std::get<std::string>(fragShader).c_str());
     } else if (is_hlsl(languages, version)) {
         spirv_cross::CompilerHLSL::Options hlslOptions;
-        hlslOptions.shader_model = version;
+        // hlslOptions.shader_model = version;
 
         spirv_cross::CompilerHLSL hlslVert(spirvSourceVert);
         hlslVert.set_hlsl_options(hlslOptions);
