@@ -1,5 +1,6 @@
 #include <filesystem>
 #include <fstream>
+#include <variant>
 
 #include <glslang/Include/ResourceLimits.h>
 #include <glslang/Public/ShaderLang.h>
