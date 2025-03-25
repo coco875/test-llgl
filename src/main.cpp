@@ -50,7 +50,7 @@ extern "C"
 #endif
     LLGL::Log::RegisterCallbackStd();
 
-    int rendererID = LLGL::RendererID::Direct3D12;
+    int rendererID = LLGL::RendererID::Direct3D11;
 
 #ifdef LLGL_OS_LINUX
     SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11");
@@ -209,7 +209,8 @@ extern "C"
     // Link shader program and check for errors
     if (const LLGL::Report* report = pipeline->GetReport()) {
         if (report->HasErrors()) {
-            LLGL::Log::Errorf("%s\n", report->GetText());
+            const char* a = report->GetText();
+            LLGL::Log::Errorf("%s\n", a);
             throw std::runtime_error("Failed to link shader program");
         }
     }

@@ -321,7 +321,11 @@ void generate_shader(LLGL::ShaderDescriptor& vertShaderDesc, LLGL::ShaderDescrip
                      std::variant<std::string, std::vector<uint32_t>>& fragShader) {
     glslang::InitializeProcess();
 
+    #ifdef WIN32
+    std::filesystem::path shaderPath = "../../shader";
+    #else
     std::filesystem::path shaderPath = "../shader";
+    #endif
     std::filesystem::path vertShaderPath = shaderPath / "test.vert";
     std::filesystem::path fragShaderPath = shaderPath / "test.frag";
 
@@ -409,7 +413,7 @@ void generate_shader(LLGL::ShaderDescriptor& vertShaderDesc, LLGL::ShaderDescrip
         LLGL::Log::Printf("GLSL ES:\n%s\n", std::get<std::string>(fragShader).c_str());
     } else if (is_hlsl(languages, version)) {
         spirv_cross::CompilerHLSL::Options hlslOptions;
-        // hlslOptions.shader_model = version;
+        hlslOptions.shader_model = 50;
 
         spirv_cross::CompilerHLSL hlslVert(spirvSourceVert);
         hlslVert.set_hlsl_options(hlslOptions);
