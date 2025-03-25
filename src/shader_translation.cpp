@@ -122,73 +122,68 @@ static TBuiltInResource InitResources() {
     return Resources;
 }
 
-void glslang_spirv_cross_test() {
-    glslang::InitializeProcess();
+glslang::TShader create_shader(EShLanguage type, std::filesystem::path shaderPath, std::string& shaderSource,
+                               char*& shaderSourceC) {
+    glslang::TShader shaderGlslang(type);
 
-    glslang::TShader vertShaderGlslang(EShLangVertex);
-    glslang::TShader fragShaderGlslang(EShLangFragment);
+    std::ifstream shaderFile(shaderPath);
+    shaderSource = std::string((std::istreambuf_iterator<char>(shaderFile)), std::istreambuf_iterator<char>());
 
-    std::filesystem::path shaderPath = "../shader";
-    std::filesystem::path vertShaderPath = shaderPath / "test.vert";
-    std::filesystem::path fragShaderPath = shaderPath / "test.frag";
+    shaderSourceC = shaderSource.data();
 
-    std::ifstream vertShaderFile(vertShaderPath);
-    std::ifstream fragShaderFile(fragShaderPath);
+    shaderGlslang.setStrings(&shaderSourceC, 1);
 
-    std::string vertShaderSource((std::istreambuf_iterator<char>(vertShaderFile)), std::istreambuf_iterator<char>());
-    std::string fragShaderSource((std::istreambuf_iterator<char>(fragShaderFile)), std::istreambuf_iterator<char>());
+    shaderGlslang.setSourceFile(shaderPath.c_str());
 
-    // vertShaderGlslang.addSourceText(vertShaderSource.c_str(), vertShaderSource.size());
-    // fragShaderGlslang.addSourceText(fragShaderSource.c_str(), fragShaderSource.size());
+    shaderGlslang.setEnvInput(glslang::EShSourceGlsl, type, glslang::EShClientVulkan, 100);
+    shaderGlslang.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_5);
+    shaderGlslang.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_2);
 
-    char* vertShaderSourceC = vertShaderSource.data();
-    char* fragShaderSourceC = fragShaderSource.data();
+    return shaderGlslang;
+}
 
-    vertShaderGlslang.setStrings(&vertShaderSourceC, 1);
-    fragShaderGlslang.setStrings(&fragShaderSourceC, 1);
-
-    vertShaderGlslang.setSourceFile("../shader/test.vert");
-    fragShaderGlslang.setSourceFile("../shader/test.frag");
-
-    vertShaderGlslang.setEnvInput(glslang::EShSourceGlsl, EShLangVertex, glslang::EShClientVulkan, 100);
-    fragShaderGlslang.setEnvInput(glslang::EShSourceGlsl, EShLangFragment, glslang::EShClientVulkan, 100);
-
-    vertShaderGlslang.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_5);
-    vertShaderGlslang.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_2);
-
-    fragShaderGlslang.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_5);
-    fragShaderGlslang.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_2);
-
+void parse_shader(glslang::TShader& vertShaderGlslang, glslang::TShader& fragShaderGlslang) {
     TBuiltInResource builtInResources = InitResources();
     vertShaderGlslang.parse(&builtInResources, 120, true, EShMsgDefault);
-    fragShaderGlslang.parse(&builtInResources, 120, true, EShMsgDefault);
-
-    glslang::TProgram program;
-    program.addShader(&vertShaderGlslang);
-    program.addShader(&fragShaderGlslang);
-
-    program.link(EShMsgDefault);
-
-    if (program.getIntermediate(EShLangVertex) == nullptr || program.getIntermediate(EShLangFragment) == nullptr) {
-        LLGL::Log::Errorf("Failed to link shaders\n");
-        exit(1);
-    }
-
     const char* vertShaderGlslangLog = vertShaderGlslang.getInfoLog();
-    const char* fragShaderGlslangLog = fragShaderGlslang.getInfoLog();
 
     if (vertShaderGlslangLog != nullptr && *vertShaderGlslangLog != '\0') {
         LLGL::Log::Printf(vertShaderGlslangLog);
         throw std::runtime_error("Failed to compile vertex shader");
     }
 
+    fragShaderGlslang.parse(&builtInResources, 120, true, EShMsgDefault);
+    const char* fragShaderGlslangLog = fragShaderGlslang.getInfoLog();
+
     if (fragShaderGlslangLog != nullptr && *fragShaderGlslangLog != '\0') {
         LLGL::Log::Printf(fragShaderGlslangLog);
         throw std::runtime_error("Failed to compile fragment shader");
     }
+}
 
-    auto vertShaderGlslangIntermediate = program.getIntermediate(EShLangVertex);
-    auto fragShaderGlslangIntermediate = program.getIntermediate(EShLangFragment);
+void glslang_spirv_cross_test() {
+    glslang::InitializeProcess();
+
+    std::filesystem::path shaderPath = "../shader";
+    std::filesystem::path vertShaderPath = shaderPath / "test.vert";
+    std::filesystem::path fragShaderPath = shaderPath / "test.frag";
+
+    std::string vertShaderSource;
+    std::string fragShaderSource;
+    char *vertShaderSourceC, *fragShaderSourceC;
+    auto vertShaderGlslang = create_shader(EShLangVertex, vertShaderPath, vertShaderSource, vertShaderSourceC);
+    auto fragShaderGlslang = create_shader(EShLangFragment, fragShaderPath, fragShaderSource, fragShaderSourceC);
+
+    glslang::TProgram program;
+    parse_shader(vertShaderGlslang, fragShaderGlslang);
+
+    auto vertShaderGlslangIntermediate = vertShaderGlslang.getIntermediate();
+    auto fragShaderGlslangIntermediate = fragShaderGlslang.getIntermediate();
+
+    if (vertShaderGlslangIntermediate == nullptr || fragShaderGlslangIntermediate == nullptr) {
+        LLGL::Log::Printf("Failed to link shaders");
+        throw std::runtime_error("Failed to link shaders");
+    }
 
     spv::SpvBuildLogger logger;
     std::vector<uint32_t> spirvSourceVert;
@@ -227,4 +222,228 @@ void glslang_spirv_cross_test() {
     LLGL::Log::Printf("MSL:\n%s\n", mslVert.compile().c_str());
     spirv_cross::CompilerMSL mslFrag(spirvSourceFrag);
     LLGL::Log::Printf("MSL:\n%s\n", mslFrag.compile().c_str());
+}
+
+bool is_glsl(const std::vector<LLGL::ShadingLanguage>& languages, int& version) {
+    bool isGLSL = false;
+
+    version = 0;
+
+    for (const auto& language : languages) {
+        if (language == LLGL::ShadingLanguage::GLSL) {
+            isGLSL = true;
+        } else if (static_cast<int>(language) & static_cast<int>(LLGL::ShadingLanguage::GLSL)) {
+            int v = static_cast<int>(language) & static_cast<int>(LLGL::ShadingLanguage::VersionBitmask);
+            if (v > version) {
+                version = v;
+            }
+        }
+    }
+    return isGLSL;
+}
+
+bool is_glsles(const std::vector<LLGL::ShadingLanguage>& languages, int& version) {
+    bool isGLSLES = false;
+
+    version = 0;
+
+    for (const auto& language : languages) {
+        if (language == LLGL::ShadingLanguage::ESSL) {
+            isGLSLES = true;
+        } else if (static_cast<int>(language) & static_cast<int>(LLGL::ShadingLanguage::ESSL)) {
+            int v = static_cast<int>(language) & static_cast<int>(LLGL::ShadingLanguage::VersionBitmask);
+            if (v > version) {
+                version = v;
+            }
+        }
+    }
+    return isGLSLES;
+}
+
+bool is_hlsl(const std::vector<LLGL::ShadingLanguage>& languages, int& version) {
+    bool isHLSL = false;
+
+    version = 0;
+
+    for (const auto& language : languages) {
+        if (language == LLGL::ShadingLanguage::HLSL) {
+            isHLSL = true;
+        } else if (static_cast<int>(language) & static_cast<int>(LLGL::ShadingLanguage::HLSL)) {
+            int v = static_cast<int>(language) & static_cast<int>(LLGL::ShadingLanguage::VersionBitmask);
+            if (v > version) {
+                version = v;
+            }
+        }
+    }
+    return isHLSL;
+}
+
+bool is_metal(const std::vector<LLGL::ShadingLanguage>& languages, int& version) {
+    bool isMetal = false;
+
+    version = 0;
+
+    for (const auto& language : languages) {
+        if (language == LLGL::ShadingLanguage::Metal) {
+            isMetal = true;
+        } else if (static_cast<int>(language) & static_cast<int>(LLGL::ShadingLanguage::Metal)) {
+            int v = static_cast<int>(language) & static_cast<int>(LLGL::ShadingLanguage::VersionBitmask);
+            if (v > version) {
+                version = v;
+            }
+        }
+    }
+    return isMetal;
+}
+
+bool is_spirv(const std::vector<LLGL::ShadingLanguage>& languages, int& version) {
+    bool isSPIRV = false;
+
+    version = 0;
+
+    for (const auto& language : languages) {
+        if (language == LLGL::ShadingLanguage::SPIRV) {
+            isSPIRV = true;
+        } else if (static_cast<int>(language) & static_cast<int>(LLGL::ShadingLanguage::SPIRV)) {
+            int v = static_cast<int>(language) & static_cast<int>(LLGL::ShadingLanguage::VersionBitmask);
+            if (v > version) {
+                version = v;
+            }
+        }
+    }
+    return isSPIRV;
+}
+
+void generate_shader(LLGL::ShaderDescriptor& vertShaderDesc, LLGL::ShaderDescriptor& fragShaderDesc,
+                     const std::vector<LLGL::ShadingLanguage>& languages,
+                     std::variant<std::string, std::vector<uint32_t>>& vertShader,
+                     std::variant<std::string, std::vector<uint32_t>>& fragShader) {
+    glslang::InitializeProcess();
+
+    std::filesystem::path shaderPath = "../shader";
+    std::filesystem::path vertShaderPath = shaderPath / "test.vert";
+    std::filesystem::path fragShaderPath = shaderPath / "test.frag";
+
+    std::string vertShaderSource;
+    std::string fragShaderSource;
+    char *vertShaderSourceC, *fragShaderSourceC;
+    auto vertShaderGlslang = create_shader(EShLangVertex, vertShaderPath, vertShaderSource, vertShaderSourceC);
+    auto fragShaderGlslang = create_shader(EShLangFragment, fragShaderPath, fragShaderSource, fragShaderSourceC);
+
+    parse_shader(vertShaderGlslang, fragShaderGlslang);
+
+    auto vertShaderGlslangIntermediate = vertShaderGlslang.getIntermediate();
+    auto fragShaderGlslangIntermediate = fragShaderGlslang.getIntermediate();
+
+    if (vertShaderGlslangIntermediate == nullptr || fragShaderGlslangIntermediate == nullptr) {
+        LLGL::Log::Errorf("Failed to get intermediate\n");
+        exit(1);
+    }
+
+    spv::SpvBuildLogger logger;
+    std::vector<uint32_t> spirvSourceVert;
+    std::vector<uint32_t> spirvSourceFrag;
+
+    glslang::SpvOptions spvOptions;
+    spvOptions.validate = false;
+    spvOptions.disableOptimizer = true;
+    spvOptions.optimizeSize = false;
+
+    glslang::GlslangToSpv(*vertShaderGlslangIntermediate, spirvSourceVert, &logger, &spvOptions);
+    glslang::GlslangToSpv(*fragShaderGlslangIntermediate, spirvSourceFrag, &logger, &spvOptions);
+
+    glslang::FinalizeProcess();
+    int version = 0;
+    if (is_spirv(languages, version)) {
+        vertShader = spirvSourceVert;
+        char* vertShaderSourceC = (char*) malloc(spirvSourceVert.size() * sizeof(uint32_t));
+        memcpy(vertShaderSourceC, &(*spirvSourceVert.begin()), spirvSourceVert.size() * sizeof(uint32_t));
+        vertShaderDesc = { LLGL::ShaderType::Vertex, vertShaderSourceC };
+        vertShaderDesc.sourceType = LLGL::ShaderSourceType::BinaryBuffer;
+        vertShaderDesc.sourceSize = spirvSourceVert.size() * sizeof(uint32_t);
+
+        fragShader = spirvSourceFrag;
+        char* fragShaderSourceC = (char*) malloc(spirvSourceFrag.size() * sizeof(uint32_t));
+        memcpy(fragShaderSourceC, &(*spirvSourceFrag.begin()), spirvSourceFrag.size() * sizeof(uint32_t));
+        fragShaderDesc = { LLGL::ShaderType::Fragment, (char*) fragShaderSourceC };
+        fragShaderDesc.sourceType = LLGL::ShaderSourceType::BinaryBuffer;
+        fragShaderDesc.sourceSize = spirvSourceFrag.size() * sizeof(uint32_t);
+
+        LLGL::Log::Printf("SPIRV:\n");
+    } else if (is_glsl(languages, version)) {
+        spirv_cross::CompilerGLSL::Options scoptions;
+        scoptions.version = version;
+        scoptions.es = false;
+
+        spirv_cross::CompilerGLSL glslVert(spirvSourceVert);
+        glslVert.set_common_options(scoptions);
+        vertShader = glslVert.compile();
+        vertShaderDesc = { LLGL::ShaderType::Vertex, std::get<std::string>(vertShader).c_str() };
+        vertShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;
+        LLGL::Log::Printf("GLSL:\n%s\n", std::get<std::string>(vertShader).c_str());
+
+        spirv_cross::CompilerGLSL glslFrag(spirvSourceFrag);
+        glslFrag.set_common_options(scoptions);
+        fragShader = glslFrag.compile();
+        fragShaderDesc = { LLGL::ShaderType::Fragment, std::get<std::string>(fragShader).c_str() };
+        fragShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;
+        LLGL::Log::Printf("GLSL:\n%s\n", std::get<std::string>(fragShader).c_str());
+    } else if (is_glsles(languages, version)) {
+        spirv_cross::CompilerGLSL::Options scoptions;
+        scoptions.version = version;
+        scoptions.es = true;
+
+        spirv_cross::CompilerGLSL glslVert(spirvSourceVert);
+        glslVert.set_common_options(scoptions);
+        vertShader = glslVert.compile();
+        vertShaderDesc = { LLGL::ShaderType::Vertex, std::get<std::string>(vertShader).c_str() };
+        vertShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;
+        LLGL::Log::Printf("GLSL ES:\n%s\n", std::get<std::string>(vertShader).c_str());
+
+        spirv_cross::CompilerGLSL glslFrag(spirvSourceFrag);
+        glslFrag.set_common_options(scoptions);
+        fragShader = glslFrag.compile();
+        fragShaderDesc = { LLGL::ShaderType::Fragment, std::get<std::string>(fragShader).c_str() };
+        fragShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;
+        LLGL::Log::Printf("GLSL ES:\n%s\n", std::get<std::string>(fragShader).c_str());
+    } else if (is_hlsl(languages, version)) {
+        spirv_cross::CompilerHLSL::Options hlslOptions;
+        hlslOptions.shader_model = version;
+
+        spirv_cross::CompilerHLSL hlslVert(spirvSourceVert);
+        hlslVert.set_hlsl_options(hlslOptions);
+        vertShader = hlslVert.compile();
+        vertShaderDesc = { LLGL::ShaderType::Vertex, std::get<std::string>(vertShader).c_str() };
+        vertShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;
+        vertShaderDesc.entryPoint = "main";
+        vertShaderDesc.profile = "vs_5_0";
+        LLGL::Log::Printf("HLSL:\n%s\n", std::get<std::string>(vertShader).c_str());
+
+        spirv_cross::CompilerHLSL hlslFrag(spirvSourceFrag);
+        hlslFrag.set_hlsl_options(hlslOptions);
+        fragShader = hlslFrag.compile();
+        fragShaderDesc = { LLGL::ShaderType::Fragment, std::get<std::string>(fragShader).c_str() };
+        fragShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;
+        fragShaderDesc.entryPoint = "main";
+        fragShaderDesc.profile = "ps_5_0";
+        LLGL::Log::Printf("HLSL:\n%s\n", std::get<std::string>(fragShader).c_str());
+    } else if (is_metal(languages, version)) {
+        spirv_cross::CompilerMSL mslVert(spirvSourceVert);
+        vertShader = mslVert.compile();
+        vertShaderDesc = { LLGL::ShaderType::Vertex, std::get<std::string>(vertShader).c_str() };
+        vertShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;
+        // vertShaderDesc.flags |= LLGL::ShaderCompileFlags::DefaultLibrary;
+        vertShaderDesc.entryPoint = "main0";
+        vertShaderDesc.profile = "2.1";
+        LLGL::Log::Printf("MSL:\n%s\n", std::get<std::string>(vertShader).c_str());
+
+        spirv_cross::CompilerMSL mslFrag(spirvSourceFrag);
+        fragShader = mslFrag.compile();
+        fragShaderDesc = { LLGL::ShaderType::Fragment, std::get<std::string>(fragShader).c_str() };
+        fragShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;
+        // fragShaderDesc.flags |= LLGL::ShaderCompileFlags::DefaultLibrary;
+        fragShaderDesc.entryPoint = "main0";
+        fragShaderDesc.profile = "2.1";
+        LLGL::Log::Printf("MSL:\n%s\n", std::get<std::string>(fragShader).c_str());
+    }
 }

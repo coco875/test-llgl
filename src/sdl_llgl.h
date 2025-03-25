@@ -20,7 +20,7 @@ class SDLSurface final : public LLGL::Surface {
     bool ProcessEvents(LLGL::SwapChain* swapChain);
 
     SDL_Window* wnd = nullptr;
-    LLGL::Extent2D size;
+    LLGL::Extent2D size_;
 
   private:
     std::string title_;

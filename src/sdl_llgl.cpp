@@ -13,7 +13,7 @@ LLGL::OpenGL::RenderSystemNativeHandle handle;
 
 SDLSurface::SDLSurface(const LLGL::Extent2D& size, const char* title, int rendererID,
                        LLGL::RenderSystemDescriptor& desc)
-    : title_{ title }, size{ size } {
+    : title_{ title }, size_{ size } {
     Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
     switch (rendererID) {
         case LLGL::RendererID::OpenGL:
@@ -84,6 +84,7 @@ SDLSurface::SDLSurface(const LLGL::Extent2D& size, const char* title, int render
 
 #ifdef __APPLE__
     SDL_GL_GetDrawableSize(wnd, (int*) &size.width, (int*) &size.height);
+    size_ = size;
 #endif
 }
 
@@ -107,7 +108,7 @@ bool SDLSurface::GetNativeHandle(void* nativeHandle, std::size_t nativeHandleSiz
 }
 
 LLGL::Extent2D SDLSurface::GetContentSize() const {
-    return size;
+    return size_;
 }
 
 bool SDLSurface::AdaptForVideoMode(LLGL::Extent2D* resolution, bool* fullscreen) {
@@ -126,8 +127,8 @@ bool SDLSurface::ProcessEvents(LLGL::SwapChain* swapChain) {
         }
         if (event.type == SDL_WINDOWEVENT &&
             (event.window.event == SDL_WINDOWEVENT_RESIZED || event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)) {
-            SDL_GL_GetDrawableSize(wnd, (int*) &size.width, (int*) &size.height);
-            swapChain->ResizeBuffers(size);
+            SDL_GL_GetDrawableSize(wnd, (int*) &size_.width, (int*) &size_.height);
+            swapChain->ResizeBuffers(size_);
         }
         ImGui_ImplSDL2_ProcessEvent(&event);
     }

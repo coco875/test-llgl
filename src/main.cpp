@@ -49,7 +49,7 @@ extern "C"
 #endif
     LLGL::Log::RegisterCallbackStd();
 
-    int rendererID = LLGL::RendererID::OpenGL;
+    int rendererID = LLGL::RendererID::Metal;
 
 #ifdef LLGL_OS_LINUX
     SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11");
@@ -68,6 +68,7 @@ extern "C"
 
     LLGL::RenderSystemDescriptor desc;
     auto surface = std::make_shared<SDLSurface>(swapChainDesc.resolution, "LLGL SwapChain", rendererID, desc);
+    desc.flags |= LLGL::RenderSystemFlags::DebugDevice;
     LLGL::Report report;
     auto llgl_renderer = LLGL::RenderSystem::Load(desc, &report);
 
@@ -134,33 +135,10 @@ extern "C"
 
     LLGL::ShaderDescriptor vertShaderDesc, fragShaderDesc;
 
-    glslang_spirv_cross_test();
+    // glslang_spirv_cross_test();
 
-    if (std::find(languages.begin(), languages.end(), LLGL::ShadingLanguage::GLSL) != languages.end()) {
-        if (std::find(languages.begin(), languages.end(), LLGL::ShadingLanguage::GLSL_140) != languages.end()) {
-#ifdef __APPLE__
-            vertShaderDesc = { LLGL::ShaderType::Vertex, "../shader/test.vert" };
-            fragShaderDesc = { LLGL::ShaderType::Fragment, "../shader/test.frag" };
-#else
-            vertShaderDesc = { LLGL::ShaderType::Vertex, "Example.vert" };
-            fragShaderDesc = { LLGL::ShaderType::Fragment, "Example.frag" };
-#endif
-        } else {
-            vertShaderDesc = { LLGL::ShaderType::Vertex, "Example.120.vert" };
-            fragShaderDesc = { LLGL::ShaderType::Fragment, "Example.120.frag" };
-        }
-    } else if (std::find(languages.begin(), languages.end(), LLGL::ShadingLanguage::SPIRV) != languages.end()) {
-        // vertShaderDesc = LLGL::ShaderDescFromFile(LLGL::ShaderType::Vertex, "Example.450core.vert.spv");
-        // fragShaderDesc = LLGL::ShaderDescFromFile(LLGL::ShaderType::Fragment, "Example.450core.frag.spv");
-    } else if (std::find(languages.begin(), languages.end(), LLGL::ShadingLanguage::HLSL) != languages.end()) {
-        vertShaderDesc = { LLGL::ShaderType::Vertex, "Example.hlsl", "VS", "vs_4_0" };
-        fragShaderDesc = { LLGL::ShaderType::Fragment, "Example.hlsl", "PS", "ps_4_0" };
-    } else if (std::find(languages.begin(), languages.end(), LLGL::ShadingLanguage::Metal) != languages.end()) {
-        vertShaderDesc = { LLGL::ShaderType::Vertex, "Example.metal", "VS", "1.1" };
-        fragShaderDesc = { LLGL::ShaderType::Fragment, "Example.metal", "PS", "1.1" };
-        vertShaderDesc.flags |= LLGL::ShaderCompileFlags::DefaultLibrary;
-        fragShaderDesc.flags |= LLGL::ShaderCompileFlags::DefaultLibrary;
-    }
+    std::variant<std::string, std::vector<uint32_t>> vertShaderSourceC, fragShaderSourceC;
+    generate_shader(vertShaderDesc, fragShaderDesc, languages, vertShaderSourceC, fragShaderSourceC);
 
     // Specify vertex attributes for vertex shader
     vertShaderDesc.vertex.inputAttribs = vertexFormat.attributes;
@@ -228,12 +206,12 @@ extern "C"
 #endif
 
     // Link shader program and check for errors
-    // if (const LLGL::Report* report = pipeline->GetReport()) {
-    //     if (report->HasErrors()) {
-    //         LLGL::Log::Errorf("%s\n", report->GetText());
-    //         exit(1);
-    //     }
-    // }
+    if (const LLGL::Report* report = pipeline->GetReport()) {
+        if (report->HasErrors()) {
+            LLGL::Log::Errorf("%s\n", report->GetText());
+            throw std::runtime_error("Failed to link shader program");
+        }
+    }
 
     auto llgl_cmdBuffer = llgl_renderer->CreateCommandBuffer(LLGL::CommandBufferFlags::ImmediateSubmit);
 
@@ -247,17 +225,17 @@ extern "C"
             llgl_cmdBuffer->SetViewport(llgl_swapChain->GetResolution());
 
             // Set vertex buffer
-            // llgl_cmdBuffer->SetVertexBuffer(*vertexBuffer);
+            llgl_cmdBuffer->SetVertexBuffer(*vertexBuffer);
 
             llgl_cmdBuffer->BeginRenderPass(*llgl_swapChain);
             {
                 llgl_cmdBuffer->Clear(LLGL::ClearFlags::Color, LLGL::ClearValue{ 0.0f, 0.2f, 0.2f, 1.0f });
 
                 // Set graphics pipeline
-                // llgl_cmdBuffer->SetPipelineState(*pipeline);
+                llgl_cmdBuffer->SetPipelineState(*pipeline);
 
                 // Draw triangle with 3 vertices
-                // llgl_cmdBuffer->Draw(3, 0);
+                llgl_cmdBuffer->Draw(3, 0);
 
                 // GUI Rendering with ImGui library
                 // Start the Dear ImGui frame
