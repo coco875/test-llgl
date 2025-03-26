@@ -422,8 +422,8 @@ void generate_shader(LLGL::ShaderDescriptor& vertShaderDesc, LLGL::ShaderDescrip
 
         spirv_cross::CompilerHLSL hlslVert(spirvSourceVert);
         hlslVert.set_hlsl_options(hlslOptions);
-        for (unsigned int i = 0; i<vertexFormat.attributes.size(); i++) {
-            hlslVert.add_vertex_attribute_remap({i,vertexFormat.attributes[i].name.c_str() });
+        for (unsigned int i = 0; i < vertexFormat.attributes.size(); i++) {
+            hlslVert.add_vertex_attribute_remap({ i, vertexFormat.attributes[i].name.c_str() });
         }
         vertShader = hlslVert.compile();
         vertShaderDesc = { LLGL::ShaderType::Vertex, std::get<std::string>(vertShader).c_str() };
