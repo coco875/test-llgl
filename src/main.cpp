@@ -76,7 +76,7 @@ extern "C"
     // Create SDL window and LLGL swap-chain
     if (!llgl_renderer) {
         auto a = report.GetText();
-        LLGL::Log::Errorf("Failed to load \"%s\" module. Falling back to \"Null\" device.\n", "OpenGL");
+        LLGL::Log::Errorf("Failed to load \"%s\" module. Falling back to \"Null\" device.\n", desc.moduleName.c_str());
         LLGL::Log::Errorf("Reason for failure: %s", report.HasErrors() ? report.GetText() : "Unknown\n");
         llgl_renderer = LLGL::RenderSystem::Load("Null");
         if (!llgl_renderer) {
