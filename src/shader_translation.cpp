@@ -128,6 +128,10 @@ glslang::TShader create_shader(EShLanguage type, std::filesystem::path shaderPat
     glslang::TShader shaderGlslang(type);
 
     std::ifstream shaderFile(shaderPath);
+    if (!shaderFile.is_open()) {
+        LLGL::Log::Printf("Failed to open shader file");
+        throw std::runtime_error("Failed to open shader file");
+    }
     shaderSource = std::string((std::istreambuf_iterator<char>(shaderFile)), std::istreambuf_iterator<char>());
 
     shaderSourceC = shaderSource.data();
@@ -321,11 +325,11 @@ void generate_shader(LLGL::ShaderDescriptor& vertShaderDesc, LLGL::ShaderDescrip
                      std::variant<std::string, std::vector<uint32_t>>& fragShader) {
     glslang::InitializeProcess();
 
-    #ifdef WIN32
+#ifdef WIN32
     std::filesystem::path shaderPath = "../../shader";
-    #else
+#else
     std::filesystem::path shaderPath = "../shader";
-    #endif
+#endif
     std::filesystem::path vertShaderPath = shaderPath / "test.vert";
     std::filesystem::path fragShaderPath = shaderPath / "test.frag";
 
