@@ -7,6 +7,7 @@
 #include <glslang/SPIRV/SpvTools.h>
 
 #include <LLGL/LLGL.h>
+#include <LLGL/Utils/VertexFormat.h>
 
 #include "spirv.hpp"
 #include "spirv_glsl.hpp"
@@ -320,7 +321,7 @@ bool is_spirv(const std::vector<LLGL::ShadingLanguage>& languages, int& version)
 }
 
 void generate_shader(LLGL::ShaderDescriptor& vertShaderDesc, LLGL::ShaderDescriptor& fragShaderDesc,
-                     const std::vector<LLGL::ShadingLanguage>& languages,
+                     const std::vector<LLGL::ShadingLanguage>& languages, LLGL::VertexFormat& vertexFormat,
                      std::variant<std::string, std::vector<uint32_t>>& vertShader,
                      std::variant<std::string, std::vector<uint32_t>>& fragShader) {
     glslang::InitializeProcess();
@@ -421,6 +422,9 @@ void generate_shader(LLGL::ShaderDescriptor& vertShaderDesc, LLGL::ShaderDescrip
 
         spirv_cross::CompilerHLSL hlslVert(spirvSourceVert);
         hlslVert.set_hlsl_options(hlslOptions);
+        for (unsigned int i = 0; i<vertexFormat.attributes.size(); i++) {
+            hlslVert.add_vertex_attribute_remap({i,vertexFormat.attributes[i].name.c_str() });
+        }
         vertShader = hlslVert.compile();
         vertShaderDesc = { LLGL::ShaderType::Vertex, std::get<std::string>(vertShader).c_str() };
         vertShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;

@@ -139,7 +139,7 @@ extern "C"
     // glslang_spirv_cross_test();
 
     std::variant<std::string, std::vector<uint32_t>> vertShaderSourceC, fragShaderSourceC;
-    generate_shader(vertShaderDesc, fragShaderDesc, languages, vertShaderSourceC, fragShaderSourceC);
+    generate_shader(vertShaderDesc, fragShaderDesc, languages, vertexFormat, vertShaderSourceC, fragShaderSourceC);
 
     // Specify vertex attributes for vertex shader
     vertShaderDesc.vertex.inputAttribs = vertexFormat.attributes;
