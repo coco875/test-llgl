@@ -322,7 +322,7 @@ bool is_spirv(const std::vector<LLGL::ShadingLanguage>& languages, int& version)
 
 void generate_shader(LLGL::ShaderDescriptor& vertShaderDesc, LLGL::ShaderDescriptor& fragShaderDesc,
                      const std::vector<LLGL::ShadingLanguage>& languages, LLGL::VertexFormat& vertexFormat,
-                     std::variant<std::string, std::vector<uint32_t>>& vertShader,
+                     std::string name_shader, std::variant<std::string, std::vector<uint32_t>>& vertShader,
                      std::variant<std::string, std::vector<uint32_t>>& fragShader) {
     glslang::InitializeProcess();
 
@@ -331,8 +331,8 @@ void generate_shader(LLGL::ShaderDescriptor& vertShaderDesc, LLGL::ShaderDescrip
 #else
     std::filesystem::path shaderPath = "../shader";
 #endif
-    std::filesystem::path vertShaderPath = shaderPath / "test.vert";
-    std::filesystem::path fragShaderPath = shaderPath / "test.frag";
+    std::filesystem::path vertShaderPath = shaderPath / (name_shader + ".vert");
+    std::filesystem::path fragShaderPath = shaderPath / (name_shader + ".frag");
 
     std::string vertShaderSource;
     std::string fragShaderSource;
@@ -394,6 +394,8 @@ void generate_shader(LLGL::ShaderDescriptor& vertShaderDesc, LLGL::ShaderDescrip
 
         spirv_cross::CompilerGLSL glslFrag(spirvSourceFrag);
         glslFrag.set_common_options(scoptions);
+        glslFrag.build_combined_image_samplers();
+        auto remap = glslFrag.get_combined_image_samplers();
         fragShader = glslFrag.compile();
         fragShaderDesc = { LLGL::ShaderType::Fragment, std::get<std::string>(fragShader).c_str() };
         fragShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;
@@ -418,7 +420,7 @@ void generate_shader(LLGL::ShaderDescriptor& vertShaderDesc, LLGL::ShaderDescrip
         LLGL::Log::Printf("GLSL ES:\n%s\n", std::get<std::string>(fragShader).c_str());
     } else if (is_hlsl(languages, version)) {
         spirv_cross::CompilerHLSL::Options hlslOptions;
-        hlslOptions.shader_model = 50;
+        hlslOptions.shader_model = version / 10;
 
         spirv_cross::CompilerHLSL hlslVert(spirvSourceVert);
         hlslVert.set_hlsl_options(hlslOptions);

@@ -39,6 +39,52 @@ void print_info(LLGL::RenderSystemPtr& llgl_render, LLGL::SwapChain* llgl_swapCh
                       llgl_swapChain->GetResolution().height, llgl_swapChain->GetSamples());
 }
 
+LLGL::PipelineState* create_pipeline(LLGL::RenderSystemPtr& llgl_renderer, LLGL::SwapChain* llgl_swapChain,
+                                     std::vector<LLGL::ShadingLanguage> languages, LLGL::VertexFormat& vertexFormat,
+                                     std::string name, LLGL::PipelineLayout* pipelineLayout = nullptr) {
+    LLGL::ShaderDescriptor vertShaderDesc, fragShaderDesc;
+
+    std::variant<std::string, std::vector<uint32_t>> vertShaderSourceC, fragShaderSourceC;
+    generate_shader(vertShaderDesc, fragShaderDesc, languages, vertexFormat, name, vertShaderSourceC,
+                    fragShaderSourceC);
+
+    // Specify vertex attributes for vertex shader
+    vertShaderDesc.vertex.inputAttribs = vertexFormat.attributes;
+
+    LLGL::Shader* vertShader = llgl_renderer->CreateShader(vertShaderDesc);
+    LLGL::Shader* fragShader = llgl_renderer->CreateShader(fragShaderDesc);
+
+    for (LLGL::Shader* shader : { vertShader, fragShader }) {
+        if (const LLGL::Report* report = shader->GetReport())
+            LLGL::Log::Errorf("%s", report->GetText());
+    }
+
+    // Create graphics pipeline
+    LLGL::PipelineState* pipeline = nullptr;
+    LLGL::PipelineCache* pipelineCache = nullptr;
+
+    LLGL::GraphicsPipelineDescriptor pipelineDesc;
+    {
+        pipelineDesc.vertexShader = vertShader;
+        pipelineDesc.fragmentShader = fragShader;
+        pipelineDesc.renderPass = llgl_swapChain->GetRenderPass();
+        pipelineDesc.pipelineLayout = pipelineLayout;
+    }
+
+    // Create graphics PSO
+    pipeline = llgl_renderer->CreatePipelineState(pipelineDesc, pipelineCache);
+
+    // Link shader program and check for errors
+    if (const LLGL::Report* report = pipeline->GetReport()) {
+        if (report->HasErrors()) {
+            const char* a = report->GetText();
+            LLGL::Log::Errorf("%s\n", a);
+            throw std::runtime_error("Failed to link shader program");
+        }
+    }
+    return pipeline;
+}
+
 #ifdef _WIN32
 int SDL_main(int argc, char** argv) {
 #else
@@ -50,7 +96,7 @@ extern "C"
 #endif
     LLGL::Log::RegisterCallbackStd();
 
-    int rendererID = LLGL::RendererID::Direct3D11;
+    int rendererID = LLGL::RendererID::OpenGL;
 
 #ifdef LLGL_OS_LINUX
     SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11");
@@ -91,6 +137,8 @@ extern "C"
 
     LLGL::Log::Printf("glsl version: %s\n", glslang::GetGlslVersionString());
 
+    const auto& languages = llgl_renderer->GetRenderingCaps().shadingLanguages;
+
     // Vertex data structure
     struct Vertex {
         float position[2];
@@ -128,92 +176,58 @@ extern "C"
     }
     LLGL::Buffer* vertexBuffer = llgl_renderer->CreateBuffer(vertexBufferDesc, vertices);
 
-    // Create shaders
-    LLGL::Shader* vertShader = nullptr;
-    LLGL::Shader* fragShader = nullptr;
+    LLGL::PipelineState* pipeline = create_pipeline(llgl_renderer, llgl_swapChain, languages, vertexFormat, "test");
 
-    const auto& languages = llgl_renderer->GetRenderingCaps().shadingLanguages;
+    struct VertexTex {
+        float position[2];
+        uint8_t color[4];
+        float texCoord[2];
+    };
 
-    LLGL::ShaderDescriptor vertShaderDesc, fragShaderDesc;
+    // Vertex data (3 vertices for our triangle)
+    // const float s = 0.5f;
 
-    // glslang_spirv_cross_test();
+    VertexTex verticesTex[] = {
+        { { 0, s }, { 255, 0, 0, 255 }, { 0.5, 0.0 } },   // 1st vertex: center-top, red
+        { { s, -s }, { 0, 255, 0, 255 }, { 0.0, 1.0 } },  // 2nd vertex: right-bottom, green
+        { { -s, -s }, { 0, 0, 255, 255 }, { 1.0, 1.0 } }, // 3rd vertex: left-bottom, blue
+    };
 
-    std::variant<std::string, std::vector<uint32_t>> vertShaderSourceC, fragShaderSourceC;
-    generate_shader(vertShaderDesc, fragShaderDesc, languages, vertexFormat, vertShaderSourceC, fragShaderSourceC);
+    // Vertex format
+    LLGL::VertexFormat vertexTexFormat;
 
-    // Specify vertex attributes for vertex shader
-    vertShaderDesc.vertex.inputAttribs = vertexFormat.attributes;
+    vertexTexFormat.AppendAttribute({ "position", LLGL::Format::RG32Float });
+    vertexTexFormat.AppendAttribute({ "color", LLGL::Format::RGBA8UNorm });
+    vertexTexFormat.AppendAttribute({ "texCoord", LLGL::Format::RG32Float });
 
-    vertShader = llgl_renderer->CreateShader(vertShaderDesc);
-    fragShader = llgl_renderer->CreateShader(fragShaderDesc);
+    // Update stride in case out vertex structure is not 4-byte aligned
+    vertexTexFormat.SetStride(sizeof(VertexTex));
 
-    for (LLGL::Shader* shader : { vertShader, fragShader }) {
-        if (const LLGL::Report* report = shader->GetReport())
-            LLGL::Log::Errorf("%s", report->GetText());
-    }
-
-    // Create graphics pipeline
-    LLGL::PipelineState* pipeline = nullptr;
-    LLGL::PipelineCache* pipelineCache = nullptr;
-
-#if ENABLE_CACHED_PSO
-
-    // Try to read PSO cache from file
-    const std::string cacheFilename = "GraphicsPSO." + rendererModule + ".cache";
-    bool hasInitialCache = false;
-
-    LLGL::Blob pipelineCacheBlob = LLGL::Blob::CreateFromFile(cacheFilename);
-    if (pipelineCacheBlob) {
-        LLGL::Log::Printf("Pipeline cache restored: %zu bytes\n", pipelineCacheBlob.GetSize());
-        hasInitialCache = true;
-    }
-
-    pipelineCache = renderer->CreatePipelineCache(pipelineCacheBlob);
-
-#endif
-
-    LLGL::GraphicsPipelineDescriptor pipelineDesc;
+    // Create vertex buffer
+    LLGL::BufferDescriptor vertexTexBufferDesc;
     {
-        pipelineDesc.vertexShader = vertShader;
-        pipelineDesc.fragmentShader = fragShader;
-        pipelineDesc.renderPass = llgl_swapChain->GetRenderPass();
-#if ENABLE_MULTISAMPLING
-        pipelineDesc.rasterizer.multiSampleEnabled = (swapChainDesc.samples > 1);
-#endif
+        vertexTexBufferDesc.size = sizeof(verticesTex); // Size (in bytes) of the vertex buffer
+        vertexTexBufferDesc.bindFlags =
+            LLGL::BindFlags::VertexBuffer; // Enables the buffer to be bound to a vertex buffer slot
+        vertexTexBufferDesc.vertexAttribs = vertexTexFormat.attributes; // Vertex format layout
     }
+    LLGL::Buffer* vertexTexBuffer = llgl_renderer->CreateBuffer(vertexTexBufferDesc, verticesTex);
 
-    // Create and cache graphics PSO
-    std::uint64_t psoStartTime = LLGL::Timer::Tick();
-    pipeline = llgl_renderer->CreatePipelineState(pipelineDesc, pipelineCache);
-    std::uint64_t psoEndTime = LLGL::Timer::Tick();
-
-#if ENABLE_CACHED_PSO
-
-    const double psoTime =
-        static_cast<double>(psoEndTime - psoStartTime) / static_cast<double>(LLGL::Timer::Frequency()) * 1000.0;
-    LLGL::Log::Printf("PSO creation time: %f ms\n", psoTime);
-
-    if (!hasInitialCache) {
-        if (LLGL::Blob psoCache = pipelineCache->GetBlob()) {
-            LLGL::Log::Printf("Pipeline cache created: %zu bytes", psoCache.GetSize());
-
-            // Store PSO cache to file
-            std::ofstream file{ cacheFilename, std::ios::out | std::ios::binary };
-            file.write(reinterpret_cast<const char*>(psoCache.GetData()),
-                       static_cast<std::streamsize>(psoCache.GetSize()));
-        }
+    LLGL::PipelineLayoutDescriptor layoutDesc;
+    {
+        layoutDesc.bindings = {
+            LLGL::BindingDescriptor{ "colorMap", LLGL::ResourceType::Texture, LLGL::BindFlags::Sampled,
+                                     LLGL::StageFlags::FragmentStage, 1 },
+            LLGL::BindingDescriptor{ "samplerState", LLGL::ResourceType::Sampler, 0, LLGL::StageFlags::FragmentStage,
+                                     2 },
+        };
+        layoutDesc.combinedTextureSamplers = { LLGL::CombinedTextureSamplerDescriptor{ "colorMap", "colorMap",
+                                                                                       "samplerState", 2 } };
     }
+    LLGL::PipelineLayout* pipelineLayout = llgl_renderer->CreatePipelineLayout(layoutDesc);
 
-#endif
-
-    // Link shader program and check for errors
-    if (const LLGL::Report* report = pipeline->GetReport()) {
-        if (report->HasErrors()) {
-            const char* a = report->GetText();
-            LLGL::Log::Errorf("%s\n", a);
-            throw std::runtime_error("Failed to link shader program");
-        }
-    }
+    LLGL::PipelineState* pipeline2 =
+        create_pipeline(llgl_renderer, llgl_swapChain, languages, vertexTexFormat, "test_texture", pipelineLayout);
 
     auto llgl_cmdBuffer = llgl_renderer->CreateCommandBuffer(LLGL::CommandBufferFlags::ImmediateSubmit);
 
