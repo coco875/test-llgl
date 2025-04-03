@@ -316,7 +316,7 @@ extern "C"
 
                 llgl_cmdBuffer->SetResource(0, *texture);
                 llgl_cmdBuffer->SetResource(1, *sampler);
-                llgl_cmdBuffer->DrawIndexed(6, 0);
+                llgl_cmdBuffer->DrawIndexed(3, 0);
 
                 // GUI Rendering with ImGui library
                 // Start the Dear ImGui frame
