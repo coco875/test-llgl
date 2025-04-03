@@ -6,6 +6,8 @@
 
 #include <LLGL/LLGL.h>
 
+#include <stb_image.h>
+
 #ifdef LLGL_OS_LINUX
 #include <GL/glx.h>
 #endif
@@ -83,6 +85,37 @@ LLGL::PipelineState* create_pipeline(LLGL::RenderSystemPtr& llgl_renderer, LLGL:
         }
     }
     return pipeline;
+}
+
+LLGL::Texture* LoadTexture(const std::string& filename, LLGL::RenderSystemPtr& llgl_render) {
+    // Load image data from file (using STBI library, see http://nothings.org/stb_image.h)
+    int width, height, channels;
+    void* imageData = stbi_load(filename.c_str(), &width, &height, &channels, 4);
+
+    LLGL::ImageView imageView(LLGL::ImageFormat::RGBA, // Image format
+                              LLGL::DataType::UInt8,   // Data type
+                              imageData,               // Image data
+                              width * height * 4       // Image data size
+    );
+
+    {
+        // Create texture
+        LLGL::TextureDescriptor texDesc;
+        {
+            // Texture type: 2D
+            texDesc.type = LLGL::TextureType::Texture2D;
+
+            // Texture hardware format: RGBA with normalized 8-bit unsigned char type
+            texDesc.format = LLGL::Format::RGBA8UNorm; // BGRA8UNorm
+
+            // Texture size
+            texDesc.extent = { static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height), 1 };
+
+            // Generate all MIP-map levels for this texture
+            texDesc.miscFlags = LLGL::MiscFlags::GenerateMips;
+        }
+        return llgl_render->CreateTexture(texDesc, &imageView);
+    }
 }
 
 #ifdef _WIN32
@@ -217,9 +250,9 @@ extern "C"
     {
         layoutDesc.bindings = {
             LLGL::BindingDescriptor{ "colorMap", LLGL::ResourceType::Texture, LLGL::BindFlags::Sampled,
-                                     LLGL::StageFlags::FragmentStage, 1 },
+                                     LLGL::StageFlags::FragmentStage, 0 },
             LLGL::BindingDescriptor{ "samplerState", LLGL::ResourceType::Sampler, 0, LLGL::StageFlags::FragmentStage,
-                                     2 },
+                                     1 },
         };
         layoutDesc.combinedTextureSamplers = { LLGL::CombinedTextureSamplerDescriptor{ "colorMap", "colorMap",
                                                                                        "samplerState", 2 } };
@@ -228,6 +261,13 @@ extern "C"
 
     LLGL::PipelineState* pipeline2 =
         create_pipeline(llgl_renderer, llgl_swapChain, languages, vertexTexFormat, "test_texture", pipelineLayout);
+
+    // Load texture
+    LLGL::Texture* texture = LoadTexture("../random.png", llgl_renderer);
+
+    LLGL::SamplerDescriptor anisotropySamplerDesc;
+    { anisotropySamplerDesc.maxAnisotropy = 8; }
+    LLGL::Sampler* sampler = llgl_renderer->CreateSampler(anisotropySamplerDesc);
 
     auto llgl_cmdBuffer = llgl_renderer->CreateCommandBuffer(LLGL::CommandBufferFlags::ImmediateSubmit);
 
@@ -251,6 +291,13 @@ extern "C"
                 llgl_cmdBuffer->SetPipelineState(*pipeline);
 
                 // Draw triangle with 3 vertices
+                llgl_cmdBuffer->Draw(3, 0);
+
+                llgl_cmdBuffer->SetPipelineState(*pipeline2);
+
+                llgl_cmdBuffer->SetVertexBuffer(*vertexTexBuffer);
+                llgl_cmdBuffer->SetResource(0, *texture);
+                llgl_cmdBuffer->SetResource(1, *sampler);
                 llgl_cmdBuffer->Draw(3, 0);
 
                 // GUI Rendering with ImGui library

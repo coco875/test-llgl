@@ -51,6 +51,20 @@ if(Vulkan_FOUND)
     target_compile_definitions(${PROJECT_NAME} PRIVATE LLGL_BUILD_RENDERER_VULKAN)
 endif()
 
+#=================== STB ===================
+set(STB_DIR ${CMAKE_BINARY_DIR}/_deps/stb)
+file(DOWNLOAD "https://github.com/nothings/stb/raw/0bc88af4de5fb022db643c2d8e549a0927749354/stb_image.h" "${STB_DIR}/stb_image.h")
+file(WRITE "${STB_DIR}/stb_impl.c" "#define STB_IMAGE_IMPLEMENTATION\n#include \"stb_image.h\"")
+
+add_library(stb STATIC)
+
+target_sources(stb PRIVATE
+    ${STB_DIR}/stb_image.h
+    ${STB_DIR}/stb_impl.c
+)
+
+target_include_directories(stb PUBLIC ${STB_DIR})
+
 #=================== SDL2 ===================
 find_package(SDL2 QUIET)
 if (NOT ${SDL2_FOUND})
@@ -245,6 +259,7 @@ if(MSVC)
 endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ImGui)
+target_link_libraries(${PROJECT_NAME} PRIVATE stb)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
     include(cmake/mac.cmake)
