@@ -132,7 +132,7 @@ extern "C"
 #endif
     LLGL::Log::RegisterCallbackStd();
 
-    int rendererID = LLGL::RendererID::Vulkan;
+    int rendererID = LLGL::RendererID::OpenGL;
 
 #ifdef LLGL_OS_LINUX
     SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11");
@@ -254,7 +254,7 @@ extern "C"
     };
     LLGL::BufferDescriptor bufferDesc;
     {
-        bufferDesc.size = indices.size();
+        bufferDesc.size = indices.size() * sizeof(std::uint32_t);
         bufferDesc.format = LLGL::Format::R32UInt;
         bufferDesc.bindFlags = LLGL::BindFlags::IndexBuffer;
     }
@@ -316,8 +316,7 @@ extern "C"
 
                 llgl_cmdBuffer->SetResource(0, *texture);
                 llgl_cmdBuffer->SetResource(1, *sampler);
-                llgl_cmdBuffer->Draw(3, 0);
-                // llgl_cmdBuffer->DrawIndexed(3, 0);
+                llgl_cmdBuffer->DrawIndexed(6, 0);
 
                 // GUI Rendering with ImGui library
                 // Start the Dear ImGui frame
