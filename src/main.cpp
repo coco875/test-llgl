@@ -91,6 +91,9 @@ LLGL::Texture* LoadTexture(const std::string& filename, LLGL::RenderSystemPtr& l
     // Load image data from file (using STBI library, see http://nothings.org/stb_image.h)
     int width, height, channels;
     void* imageData = stbi_load(filename.c_str(), &width, &height, &channels, 4);
+    if (imageData == nullptr) {
+        throw std::runtime_error("Failed to load image data");
+    }
 
     LLGL::ImageView imageView(LLGL::ImageFormat::RGBA, // Image format
                               LLGL::DataType::UInt8,   // Data type
@@ -129,7 +132,7 @@ extern "C"
 #endif
     LLGL::Log::RegisterCallbackStd();
 
-    int rendererID = LLGL::RendererID::OpenGL;
+    int rendererID = LLGL::RendererID::Vulkan;
 
 #ifdef LLGL_OS_LINUX
     SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11");
@@ -221,9 +224,9 @@ extern "C"
     // const float s = 0.5f;
 
     VertexTex verticesTex[] = {
-        { { 0, s }, { 255, 0, 0, 255 }, { 0.5, 0.0 } },   // 1st vertex: center-top, red
-        { { s, -s }, { 0, 255, 0, 255 }, { 0.0, 1.0 } },  // 2nd vertex: right-bottom, green
-        { { -s, -s }, { 0, 0, 255, 255 }, { 1.0, 1.0 } }, // 3rd vertex: left-bottom, blue
+        { { 0, s + 0.3 }, { 255, 0, 0, 255 }, { 0.5, 0.0 } },   // 1st vertex: center-top, red
+        { { s, -s + 0.3 }, { 0, 255, 0, 255 }, { 0.0, 1.0 } },  // 2nd vertex: right-bottom, green
+        { { -s, -s + 0.3 }, { 0, 0, 255, 255 }, { 1.0, 1.0 } }, // 3rd vertex: left-bottom, blue
     };
 
     // Vertex format
@@ -245,6 +248,18 @@ extern "C"
         vertexTexBufferDesc.vertexAttribs = vertexTexFormat.attributes; // Vertex format layout
     }
     LLGL::Buffer* vertexTexBuffer = llgl_renderer->CreateBuffer(vertexTexBufferDesc, verticesTex);
+
+    std::vector<std::uint32_t> indices = {
+        0, 1, 2, // Triangle
+    };
+    LLGL::BufferDescriptor bufferDesc;
+    {
+        bufferDesc.size = indices.size();
+        bufferDesc.format = LLGL::Format::R32UInt;
+        bufferDesc.bindFlags = LLGL::BindFlags::IndexBuffer;
+    }
+    bufferDesc.debugName = "IndexBuffer";
+    LLGL::Buffer* indexBuffer = llgl_renderer->CreateBuffer(bufferDesc, &indices[0]);
 
     LLGL::PipelineLayoutDescriptor layoutDesc;
     {
@@ -281,11 +296,12 @@ extern "C"
             llgl_cmdBuffer->SetViewport(llgl_swapChain->GetResolution());
 
             // Set vertex buffer
-            llgl_cmdBuffer->SetVertexBuffer(*vertexBuffer);
 
             llgl_cmdBuffer->BeginRenderPass(*llgl_swapChain);
             {
                 llgl_cmdBuffer->Clear(LLGL::ClearFlags::Color, LLGL::ClearValue{ 0.0f, 0.2f, 0.2f, 1.0f });
+
+                llgl_cmdBuffer->SetVertexBuffer(*vertexBuffer);
 
                 // Set graphics pipeline
                 llgl_cmdBuffer->SetPipelineState(*pipeline);
@@ -293,12 +309,15 @@ extern "C"
                 // Draw triangle with 3 vertices
                 llgl_cmdBuffer->Draw(3, 0);
 
+                llgl_cmdBuffer->SetVertexBuffer(*vertexTexBuffer);
+                llgl_cmdBuffer->SetIndexBuffer(*indexBuffer);
+
                 llgl_cmdBuffer->SetPipelineState(*pipeline2);
 
-                llgl_cmdBuffer->SetVertexBuffer(*vertexTexBuffer);
                 llgl_cmdBuffer->SetResource(0, *texture);
                 llgl_cmdBuffer->SetResource(1, *sampler);
                 llgl_cmdBuffer->Draw(3, 0);
+                // llgl_cmdBuffer->DrawIndexed(3, 0);
 
                 // GUI Rendering with ImGui library
                 // Start the Dear ImGui frame

@@ -364,23 +364,7 @@ void generate_shader(LLGL::ShaderDescriptor& vertShaderDesc, LLGL::ShaderDescrip
 
     glslang::FinalizeProcess();
     int version = 0;
-    if (is_spirv(languages, version)) {
-        vertShader = spirvSourceVert;
-        char* vertShaderSourceC = (char*) malloc(spirvSourceVert.size() * sizeof(uint32_t));
-        memcpy(vertShaderSourceC, &(*spirvSourceVert.begin()), spirvSourceVert.size() * sizeof(uint32_t));
-        vertShaderDesc = { LLGL::ShaderType::Vertex, vertShaderSourceC };
-        vertShaderDesc.sourceType = LLGL::ShaderSourceType::BinaryBuffer;
-        vertShaderDesc.sourceSize = spirvSourceVert.size() * sizeof(uint32_t);
-
-        fragShader = spirvSourceFrag;
-        char* fragShaderSourceC = (char*) malloc(spirvSourceFrag.size() * sizeof(uint32_t));
-        memcpy(fragShaderSourceC, &(*spirvSourceFrag.begin()), spirvSourceFrag.size() * sizeof(uint32_t));
-        fragShaderDesc = { LLGL::ShaderType::Fragment, (char*) fragShaderSourceC };
-        fragShaderDesc.sourceType = LLGL::ShaderSourceType::BinaryBuffer;
-        fragShaderDesc.sourceSize = spirvSourceFrag.size() * sizeof(uint32_t);
-
-        LLGL::Log::Printf("SPIRV:\n");
-    } else if (is_glsl(languages, version)) {
+    if (is_glsl(languages, version)) {
         spirv_cross::CompilerGLSL::Options scoptions;
         scoptions.version = version;
         scoptions.es = false;
@@ -418,6 +402,22 @@ void generate_shader(LLGL::ShaderDescriptor& vertShaderDesc, LLGL::ShaderDescrip
         fragShaderDesc = { LLGL::ShaderType::Fragment, std::get<std::string>(fragShader).c_str() };
         fragShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;
         LLGL::Log::Printf("GLSL ES:\n%s\n", std::get<std::string>(fragShader).c_str());
+    } else if (is_spirv(languages, version)) {
+        vertShader = spirvSourceVert;
+        char* vertShaderSourceC = (char*) malloc(spirvSourceVert.size() * sizeof(uint32_t));
+        memcpy(vertShaderSourceC, &(*spirvSourceVert.begin()), spirvSourceVert.size() * sizeof(uint32_t));
+        vertShaderDesc = { LLGL::ShaderType::Vertex, vertShaderSourceC };
+        vertShaderDesc.sourceType = LLGL::ShaderSourceType::BinaryBuffer;
+        vertShaderDesc.sourceSize = spirvSourceVert.size() * sizeof(uint32_t);
+
+        fragShader = spirvSourceFrag;
+        char* fragShaderSourceC = (char*) malloc(spirvSourceFrag.size() * sizeof(uint32_t));
+        memcpy(fragShaderSourceC, &(*spirvSourceFrag.begin()), spirvSourceFrag.size() * sizeof(uint32_t));
+        fragShaderDesc = { LLGL::ShaderType::Fragment, (char*) fragShaderSourceC };
+        fragShaderDesc.sourceType = LLGL::ShaderSourceType::BinaryBuffer;
+        fragShaderDesc.sourceSize = spirvSourceFrag.size() * sizeof(uint32_t);
+
+        LLGL::Log::Printf("SPIRV:\n");
     } else if (is_hlsl(languages, version)) {
         spirv_cross::CompilerHLSL::Options hlslOptions;
         hlslOptions.shader_model = version / 10;
