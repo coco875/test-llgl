@@ -104,20 +104,15 @@ set(LLGL_BUILD_STATIC_LIB ON)
 
 set(LLGL_OUTPUT_DIR ${CMAKE_BINARY_DIR})
 
-if (CMAKE_GENERATOR MATCHES "Visual Studio")
-    set(git_hide_output 2> nul)
-endif()
-
 set(llgl_patch_file ${CMAKE_CURRENT_SOURCE_DIR}/cmake/llgl.patch)
 
-# Applies the patch or checks if it has already been applied successfully previously. Will error otherwise.
-set(llgl_apply_patch_if_needed git apply ${llgl_patch_file} ${git_hide_output} || git apply --reverse --check ${llgl_patch_file})
+set(llgl_apply_patch_command ${CMAKE_COMMAND} -Dpatch_file=${llgl_patch_file} -Dwith_reset=TRUE -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/git-patch.cmake)
 
 FetchContent_Declare(
     llgl
     GIT_REPOSITORY https://github.com/LukasBanana/LLGL.git
     GIT_TAG 310e6b9f6c173ac2dac11b765e0fd0a7f66f1286
-    PATCH_COMMAND ${llgl_apply_patch_if_needed}
+    PATCH_COMMAND ${llgl_apply_patch_command}
 )
 FetchContent_MakeAvailable(llgl)
 
