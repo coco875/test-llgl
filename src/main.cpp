@@ -224,9 +224,9 @@ extern "C"
     // const float s = 0.5f;
 
     VertexTex verticesTex[] = {
-        { { 0, s + 0.3 }, { 255, 0, 0, 255 }, { 0.5, 0.0 } },   // 1st vertex: center-top, red
-        { { s, -s + 0.3 }, { 0, 255, 0, 255 }, { 0.0, 1.0 } },  // 2nd vertex: right-bottom, green
-        { { -s, -s + 0.3 }, { 0, 0, 255, 255 }, { 1.0, 1.0 } }, // 3rd vertex: left-bottom, blue
+        { { 0, s + 0.3f }, { 255, 0, 0, 255 }, { 0.5, 0.0 } },   // 1st vertex: center-top, red
+        { { s, -s + 0.3f }, { 0, 255, 0, 255 }, { 0.0, 1.0 } },  // 2nd vertex: right-bottom, green
+        { { -s, -s + 0.3f }, { 0, 0, 255, 255 }, { 1.0, 1.0 } }, // 3rd vertex: left-bottom, blue
     };
 
     // Vertex format
