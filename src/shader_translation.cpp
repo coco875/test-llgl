@@ -431,7 +431,7 @@ void generate_shader(LLGL::ShaderDescriptor& vertShaderDesc, LLGL::ShaderDescrip
         vertShaderDesc = { LLGL::ShaderType::Vertex, std::get<std::string>(vertShader).c_str() };
         vertShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;
         vertShaderDesc.entryPoint = "main";
-        vertShaderDesc.profile = "vs_5_0";
+        vertShaderDesc.profile = "vs_5_1";
         LLGL::Log::Printf("HLSL:\n%s\n", std::get<std::string>(vertShader).c_str());
 
         spirv_cross::CompilerHLSL hlslFrag(spirvSourceFrag);
@@ -440,7 +440,7 @@ void generate_shader(LLGL::ShaderDescriptor& vertShaderDesc, LLGL::ShaderDescrip
         fragShaderDesc = { LLGL::ShaderType::Fragment, std::get<std::string>(fragShader).c_str() };
         fragShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;
         fragShaderDesc.entryPoint = "main";
-        fragShaderDesc.profile = "ps_5_0";
+        fragShaderDesc.profile = "ps_5_1";
         LLGL::Log::Printf("HLSL:\n%s\n", std::get<std::string>(fragShader).c_str());
     } else if (is_metal(languages, version)) {
         spirv_cross::CompilerMSL mslVert(spirvSourceVert);
