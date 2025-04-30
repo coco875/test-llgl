@@ -36,7 +36,7 @@ SDLSurface::SDLSurface(const LLGL::Extent2D& size, const char* title, int render
     if (wnd == nullptr) {
         LLGL::Log::Errorf("%s\n", SDL_GetError());
         LLGL::Log::Errorf("Failed to create SDL2 window\n");
-        exit(1);
+        throw std::runtime_error(SDL_GetError());
     }
 
     switch (rendererID) {
