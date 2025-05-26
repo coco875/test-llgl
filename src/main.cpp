@@ -135,7 +135,7 @@ extern "C"
     int rendererID = LLGL::RendererID::OpenGL;
 
 #ifdef LLGL_OS_LINUX
-    SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11");
+    // SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11");
 #endif
 
     // Init SDL

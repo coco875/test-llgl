@@ -89,20 +89,20 @@ else()
 endif()
 
 # Add the LLGL library
-set(LLGL_BUILD_EXAMPLES OFF)
-set(LLGL_BUILD_RENDERER_NULL OFF)
-set(LLGL_BUILD_RENDERER_OPENGL ON)
-set(LLGL_GL_ENABLE_DSA_EXT ON)
-set(LLGL_GL_ENABLE_VENDOR_EXT ON)
-set(LLGL_GL_INCLUDE_EXTERNAL ON)
+set(LLGL_BUILD_EXAMPLES OFF CACHE BOOL "Disable LLGL examples")
+set(LLGL_BUILD_RENDERER_NULL OFF CACHE BOOL "Disable LLGL Null renderer")
+set(LLGL_BUILD_RENDERER_OPENGL ON CACHE BOOL "Enable LLGL OpenGL renderer")
+set(LLGL_GL_ENABLE_DSA_EXT ON CACHE BOOL "Enable OpenGL DSA extension")
+set(LLGL_GL_ENABLE_VENDOR_EXT ON CACHE BOOL "Enable OpenGL vendor extensions")
+set(LLGL_GL_INCLUDE_EXTERNAL ON CACHE BOOL "Include external OpenGL headers")
 if (Vulkan_FOUND)
-set(LLGL_BUILD_RENDERER_VULKAN ON)
+set(LLGL_BUILD_RENDERER_VULKAN ON CACHE BOOL "Enable LLGL Vulkan renderer")
 else()
-set(LLGL_BUILD_RENDERER_VULKAN OFF)
+set(LLGL_BUILD_RENDERER_VULKAN OFF CACHE BOOL "Disable LLGL Vulkan renderer")
 endif()
-set(LLGL_BUILD_STATIC_LIB ON)
+set(LLGL_BUILD_STATIC_LIB ON CACHE BOOL "Build LLGL as a static library")
 
-set(LLGL_OUTPUT_DIR ${CMAKE_BINARY_DIR})
+set(LLGL_OUTPUT_DIR ${CMAKE_BINARY_DIR} CACHE INTERNAL "LLGL output directory")
 
 set(llgl_patch_file ${CMAKE_CURRENT_SOURCE_DIR}/cmake/llgl.patch)
 
@@ -111,32 +111,36 @@ set(llgl_apply_patch_command ${CMAKE_COMMAND} -Dpatch_file=${llgl_patch_file} -D
 FetchContent_Declare(
     llgl
     GIT_REPOSITORY https://github.com/LukasBanana/LLGL.git
-    GIT_TAG 310e6b9f6c173ac2dac11b765e0fd0a7f66f1286
+    GIT_TAG 95f961ac9c917cca5e5609f69c32bc5e373d0802
     PATCH_COMMAND ${llgl_apply_patch_command}
 )
 FetchContent_MakeAvailable(llgl)
 
+if(LLGL_BUILD_RENDERER_NULL)
+target_link_libraries(LLGL LLGL_Null)
+endif()
+
 if(LLGL_BUILD_RENDERER_VULKAN)
-target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_Vulkan)
+target_link_libraries(LLGL LLGL_Vulkan)
 endif()
 
 if(LLGL_BUILD_RENDERER_OPENGL)
-target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_OpenGL)
+target_link_libraries(LLGL LLGL_OpenGL)
 endif()
 
 if(LLGL_BUILD_RENDERER_DIRECT3D11)
-target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_Direct3D11)
+target_link_libraries(LLGL LLGL_Direct3D11)
 endif()
 
 if(LLGL_BUILD_RENDERER_DIRECT3D12)
-target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_Direct3D12)
+target_link_libraries(LLGL LLGL_Direct3D12)
 endif()
 
 if(LLGL_BUILD_RENDERER_METAL)
-target_link_libraries(${PROJECT_NAME} PUBLIC LLGL_Metal)
+target_link_libraries(LLGL LLGL_Metal)
 endif()
 
-target_link_libraries(${PROJECT_NAME} PUBLIC LLGL)
+link_libraries(LLGL)
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${llgl_SOURCE_DIR})
 
