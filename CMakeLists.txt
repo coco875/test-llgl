@@ -116,31 +116,33 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(llgl)
 
+set(LLGL_libs LLGL)
+
 if(LLGL_BUILD_RENDERER_NULL)
-link_libraries(LLGL_Null)
+list(APPEND LLGL_libs LLGL_Null)
 endif()
 
 if(LLGL_BUILD_RENDERER_VULKAN)
-link_libraries(LLGL_Vulkan)
+list(APPEND LLGL_libs LLGL_Vulkan)
 endif()
 
 if(LLGL_BUILD_RENDERER_OPENGL)
-link_libraries(LLGL_OpenGL)
+list(APPEND LLGL_libs LLGL_OpenGL)
 endif()
 
 if(LLGL_BUILD_RENDERER_DIRECT3D11)
-link_libraries(LLGL_Direct3D11)
+list(APPEND LLGL_libs LLGL_Direct3D11)
 endif()
 
 if(LLGL_BUILD_RENDERER_DIRECT3D12)
-link_libraries(LLGL_Direct3D12)
+list(APPEND LLGL_libs LLGL_Direct3D12)
 endif()
 
 if(LLGL_BUILD_RENDERER_METAL)
-link_libraries(LLGL_Metal)
+list(APPEND LLGL_libs LLGL_Metal)
 endif()
 
-link_libraries(LLGL)
+link_libraries(${LLGL_libs})
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${llgl_SOURCE_DIR})
 
