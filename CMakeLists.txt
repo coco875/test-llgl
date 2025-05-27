@@ -117,27 +117,27 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(llgl)
 
 if(LLGL_BUILD_RENDERER_NULL)
-target_link_libraries(LLGL LLGL_Null)
+link_libraries(LLGL_Null)
 endif()
 
 if(LLGL_BUILD_RENDERER_VULKAN)
-target_link_libraries(LLGL LLGL_Vulkan)
+link_libraries(LLGL_Vulkan)
 endif()
 
 if(LLGL_BUILD_RENDERER_OPENGL)
-target_link_libraries(LLGL LLGL_OpenGL)
+link_libraries(LLGL_OpenGL)
 endif()
 
 if(LLGL_BUILD_RENDERER_DIRECT3D11)
-target_link_libraries(LLGL LLGL_Direct3D11)
+link_libraries(LLGL_Direct3D11)
 endif()
 
 if(LLGL_BUILD_RENDERER_DIRECT3D12)
-target_link_libraries(LLGL LLGL_Direct3D12)
+link_libraries(LLGL_Direct3D12)
 endif()
 
 if(LLGL_BUILD_RENDERER_METAL)
-target_link_libraries(LLGL LLGL_Metal)
+link_libraries(LLGL_Metal)
 endif()
 
 link_libraries(LLGL)
