@@ -116,8 +116,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(llgl)
 
-set(LLGL_libs LLGL)
-
 if(LLGL_BUILD_RENDERER_NULL)
 list(APPEND LLGL_libs LLGL_Null)
 endif()
@@ -141,6 +139,8 @@ endif()
 if(LLGL_BUILD_RENDERER_METAL)
 list(APPEND LLGL_libs LLGL_Metal)
 endif()
+
+list(APPEND LLGL)
 
 link_libraries(${LLGL_libs})
 
