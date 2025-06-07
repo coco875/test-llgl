@@ -102,13 +102,14 @@ bool SDLSurface::GetNativeHandle(void* nativeHandle, std::size_t nativeHandleSiz
 #elif defined(__APPLE__)
     nativeHandlePtr->responder = wmInfo.info.cocoa.window;
 #else
-#ifdef SDL_VIDEO_DRIVER_WAYLAND
+#if defined(SDL_VIDEO_DRIVER_WAYLAND)
     if (wmInfo.subsystem == SDL_SYSWM_WAYLAND) { // experimental
         nativeHandlePtr->type = LLGL::NativeType::Wayland;
         nativeHandlePtr->wayland.window = wmInfo.info.wl.surface;
         nativeHandlePtr->wayland.display = wmInfo.info.wl.display;
     }
-#elif defined(SDL_VIDEO_DRIVER_X11)
+#endif
+#if defined(SDL_VIDEO_DRIVER_X11)
     if (wmInfo.subsystem == SDL_SYSWM_X11) {
         nativeHandlePtr->type = LLGL::NativeType::X11;
         nativeHandlePtr->x11.display = wmInfo.info.x11.display;
