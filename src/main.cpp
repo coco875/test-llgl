@@ -43,7 +43,7 @@ void print_info(LLGL::RenderSystemPtr& llgl_render, LLGL::SwapChain* llgl_swapCh
 
 LLGL::PipelineState* create_pipeline(LLGL::RenderSystemPtr& llgl_renderer, LLGL::SwapChain* llgl_swapChain,
                                      std::vector<LLGL::ShadingLanguage> languages, LLGL::VertexFormat& vertexFormat,
-                                     std::string name, LLGL::PipelineLayout* pipelineLayout = nullptr) {
+                                     std::string name, LLGL::PipelineLayout* pipelineLayout = nullptr, LLGL::PrimitiveTopology topology = LLGL::PrimitiveTopology::TriangleList) {
     LLGL::ShaderDescriptor vertShaderDesc, fragShaderDesc;
 
     std::variant<std::string, std::vector<uint32_t>> vertShaderSourceC, fragShaderSourceC;
@@ -71,6 +71,7 @@ LLGL::PipelineState* create_pipeline(LLGL::RenderSystemPtr& llgl_renderer, LLGL:
         pipelineDesc.fragmentShader = fragShader;
         pipelineDesc.renderPass = llgl_swapChain->GetRenderPass();
         pipelineDesc.pipelineLayout = pipelineLayout;
+        pipelineDesc.primitiveTopology = topology;
     }
 
     // Create graphics PSO
@@ -190,6 +191,20 @@ extern "C"
         { { -s, -s }, { 0, 0, 255, 255 } }, // 3rd vertex: left-bottom, blue
     };
 
+    Vertex lineListVertices[] = {
+        { { -0.8f, -0.8f }, { 255, 0, 0, 255 } },
+        { { -0.4f, -0.4f }, { 255, 255, 0, 255 } },
+        { { -0.4f, -0.8f }, { 0, 255, 255, 255 } },
+        { { -0.8f, -0.4f }, { 255, 0, 255, 255 } },
+    };
+
+    Vertex lineStripVertices[] = {
+        { { 0.4f, -0.4f }, { 255, 0, 0, 255 } },
+        { { 0.8f, -0.4f }, { 0, 255, 0, 255 } },
+        { { 0.8f, -0.8f }, { 0, 0, 255, 255 } },
+        { { 0.4f, -0.8f }, { 255, 255, 0, 255 } },
+    };
+
     // Vertex format
     LLGL::VertexFormat vertexFormat;
 
@@ -211,8 +226,14 @@ extern "C"
         vertexBufferDesc.vertexAttribs = vertexFormat.attributes; // Vertex format layout
     }
     LLGL::Buffer* vertexBuffer = llgl_renderer->CreateBuffer(vertexBufferDesc, vertices);
+    LLGL::Buffer* lineListBuffer = llgl_renderer->CreateBuffer(vertexBufferDesc, lineListVertices);
+    LLGL::Buffer* lineStripBuffer = llgl_renderer->CreateBuffer(vertexBufferDesc, lineStripVertices);
+
 
     LLGL::PipelineState* pipeline = create_pipeline(llgl_renderer, llgl_swapChain, languages, vertexFormat, "test");
+    //! @warning If test is renamed, then a new shader needs to be provided.
+    LLGL::PipelineState* pipelineLineList = create_pipeline(llgl_renderer, llgl_swapChain, languages, vertexFormat, "test", nullptr, LLGL::PrimitiveTopology::LineList);
+    LLGL::PipelineState* pipelineLineStrip = create_pipeline(llgl_renderer, llgl_swapChain, languages, vertexFormat, "test", nullptr, LLGL::PrimitiveTopology::LineStrip);
 
     struct VertexTex {
         float position[2];
@@ -308,6 +329,16 @@ extern "C"
 
                 // Draw triangle with 3 vertices
                 llgl_cmdBuffer->Draw(3, 0);
+
+                // Draw Line List
+                llgl_cmdBuffer->SetVertexBuffer(*lineListBuffer);
+                llgl_cmdBuffer->SetPipelineState(*pipelineLineList);
+                llgl_cmdBuffer->Draw(4, 0);
+
+                // Draw Line Strip
+                llgl_cmdBuffer->SetVertexBuffer(*lineStripBuffer);
+                llgl_cmdBuffer->SetPipelineState(*pipelineLineStrip);
+                llgl_cmdBuffer->Draw(4, 0);
 
                 llgl_cmdBuffer->SetVertexBuffer(*vertexTexBuffer);
                 llgl_cmdBuffer->SetIndexBuffer(*indexBuffer);
