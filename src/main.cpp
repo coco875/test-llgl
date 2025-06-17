@@ -23,6 +23,8 @@
 
 #include "shader_translation.h"
 
+LLGL::RenderSystemPtr llgl_renderer;
+
 void print_info(LLGL::RenderSystemPtr& llgl_render, LLGL::SwapChain* llgl_swapChain) {
     // Print renderer information
     const auto& info = llgl_render->GetRendererInfo();
@@ -153,7 +155,7 @@ extern "C"
     auto surface = std::make_shared<SDLSurface>(swapChainDesc.resolution, "LLGL SwapChain", rendererID, desc);
     desc.flags |= LLGL::RenderSystemFlags::DebugDevice;
     LLGL::Report report;
-    auto llgl_renderer = LLGL::RenderSystem::Load(desc, &report);
+    llgl_renderer = LLGL::RenderSystem::Load(desc, &report);
 
     // Create SDL window and LLGL swap-chain
     if (!llgl_renderer) {

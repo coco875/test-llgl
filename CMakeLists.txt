@@ -63,7 +63,18 @@ target_sources(stb PRIVATE
     ${STB_DIR}/stb_impl.c
 )
 
-target_include_directories(stb PUBLIC ${STB_DIR})
+include_directories(${STB_DIR})
+
+#=================== assimp ===================
+
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build Assimp as a static library")
+
+FetchContent_Declare(
+    assimp
+    GIT_REPOSITORY https://github.com/assimp/assimp.git
+    GIT_TAG v6.0.2
+)
+FetchContent_MakeAvailable(assimp)
 
 #=================== SDL2 ===================
 find_package(SDL2 QUIET)
@@ -141,8 +152,7 @@ target_link_libraries(LLGL LLGL_Metal)
 endif()
 
 link_libraries(LLGL)
-
-link_libraries(${LLGL_libs})
+include_directories(${llgl_SOURCE_DIR}/include)
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${llgl_SOURCE_DIR})
 
@@ -259,8 +269,9 @@ if(MSVC)
     )
 endif()
 
+target_link_libraries(${PROJECT_NAME} PUBLIC stb)
+target_link_libraries(${PROJECT_NAME} PUBLIC assimp)
 target_link_libraries(${PROJECT_NAME} PUBLIC ImGui)
-target_link_libraries(${PROJECT_NAME} PRIVATE stb)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
     include(cmake/mac.cmake)
