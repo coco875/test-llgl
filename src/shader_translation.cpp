@@ -4,7 +4,7 @@
 
 #include <glslang/Include/ResourceLimits.h>
 #include <glslang/Public/ShaderLang.h>
-#include <glslang/SPIRV/SpvTools.h>
+#include <glslang/SPIRV/GlslangToSpv.h>
 
 #include <LLGL/LLGL.h>
 #include <LLGL/Utils/VertexFormat.h>
