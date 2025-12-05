@@ -159,7 +159,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${llgl_SOURCE_DIR})
 find_package(glslang REQUIRED)
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${glslang_SOURCE_DIR}/glslang/Public)
-target_link_libraries(${PROJECT_NAME} PRIVATE glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV glslang::SPVRemapper)
+target_link_libraries(${PROJECT_NAME} PRIVATE glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV)
 
 find_package(spirv_cross_core REQUIRED)
 # if(LLGL_BUILD_RENDERER_OPENGL)

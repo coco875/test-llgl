@@ -12,7 +12,9 @@
 #include <GL/glx.h>
 #endif
 
+#include <SDL2/SDL.h>
 #include "imgui.h"
+#include "imgui_impl_sdl2.h"
 
 #include "sdl_llgl.h"
 #include "imgui_llgl.h"
@@ -22,6 +24,10 @@
 #include <glslang/Public/ShaderLang.h>
 
 #include "shader_translation.h"
+#include "math_types.h"
+#include "camera.h"
+#include "model_loader.h"
+#include "primitives.h"
 
 LLGL::RenderSystemPtr llgl_renderer;
 
@@ -45,7 +51,8 @@ void print_info(LLGL::RenderSystemPtr& llgl_render, LLGL::SwapChain* llgl_swapCh
 
 LLGL::PipelineState* create_pipeline(LLGL::RenderSystemPtr& llgl_renderer, LLGL::SwapChain* llgl_swapChain,
                                      std::vector<LLGL::ShadingLanguage> languages, LLGL::VertexFormat& vertexFormat,
-                                     std::string name, LLGL::PipelineLayout* pipelineLayout = nullptr) {
+                                     std::string name, LLGL::PipelineLayout* pipelineLayout = nullptr,
+                                     bool enableDepthTest = false, LLGL::CullMode cullMode = LLGL::CullMode::Disabled) {
     LLGL::ShaderDescriptor vertShaderDesc, fragShaderDesc;
 
     std::variant<std::string, std::vector<uint32_t>> vertShaderSourceC, fragShaderSourceC;
@@ -73,6 +80,17 @@ LLGL::PipelineState* create_pipeline(LLGL::RenderSystemPtr& llgl_renderer, LLGL:
         pipelineDesc.fragmentShader = fragShader;
         pipelineDesc.renderPass = llgl_swapChain->GetRenderPass();
         pipelineDesc.pipelineLayout = pipelineLayout;
+
+        // Depth testing for 3D rendering
+        if (enableDepthTest) {
+            pipelineDesc.depth.testEnabled = true;
+            pipelineDesc.depth.writeEnabled = true;
+            pipelineDesc.depth.compareOp = LLGL::CompareOp::Less;
+        }
+
+        // Culling - use counter-clockwise as front face (OpenGL default)
+        pipelineDesc.rasterizer.cullMode = cullMode;
+        pipelineDesc.rasterizer.frontCCW = true;
     }
 
     // Create graphics PSO
@@ -123,14 +141,69 @@ LLGL::Texture* LoadTexture(const std::string& filename, LLGL::RenderSystemPtr& l
     }
 }
 
+LLGL::Buffer* create_uniform_buffer(LLGL::RenderSystemPtr& llgl_renderer, std::size_t size) {
+    LLGL::BufferDescriptor uniformBufferDesc;
+    uniformBufferDesc.size = size;
+    uniformBufferDesc.bindFlags = LLGL::BindFlags::ConstantBuffer;
+    uniformBufferDesc.cpuAccessFlags = LLGL::CPUAccessFlags::Write;
+    uniformBufferDesc.miscFlags = LLGL::MiscFlags::DynamicUsage;
+    uniformBufferDesc.debugName = "MatricesBuffer";
+    return llgl_renderer->CreateBuffer(uniformBufferDesc);
+}
+
+LLGL::PipelineLayout* create_texture_pipeline_layout(LLGL::RenderSystemPtr& llgl_renderer) {
+    LLGL::PipelineLayoutDescriptor modelLayoutDesc;
+    {
+        modelLayoutDesc.bindings = {
+            LLGL::BindingDescriptor{ "Matrices", LLGL::ResourceType::Buffer, LLGL::BindFlags::ConstantBuffer,
+                                     LLGL::StageFlags::VertexStage, 0 },
+            LLGL::BindingDescriptor{ "colorMap", LLGL::ResourceType::Texture, LLGL::BindFlags::Sampled,
+                                     LLGL::StageFlags::FragmentStage, 1 },
+            LLGL::BindingDescriptor{ "samplerState", LLGL::ResourceType::Sampler, 0, LLGL::StageFlags::FragmentStage,
+                                     2 },
+        };
+        modelLayoutDesc.combinedTextureSamplers = { LLGL::CombinedTextureSamplerDescriptor{ "colorMap", "colorMap",
+                                                                                            "samplerState", 3 } };
+    }
+    return llgl_renderer->CreatePipelineLayout(modelLayoutDesc);
+}
+
+LLGL::PipelineLayout* create_no_texture_pipeline_layout(LLGL::RenderSystemPtr& llgl_renderer) {
+    LLGL::PipelineLayoutDescriptor modelNoTexLayoutDesc;
+    {
+        modelNoTexLayoutDesc.bindings = {
+            LLGL::BindingDescriptor{ "Matrices", LLGL::ResourceType::Buffer, LLGL::BindFlags::ConstantBuffer,
+                                     LLGL::StageFlags::VertexStage, 0 },
+        };
+    }
+    return llgl_renderer->CreatePipelineLayout(modelNoTexLayoutDesc);
+}
+
+LLGL::Texture* create_white_texture(LLGL::RenderSystemPtr& llgl_renderer) {
+    uint8_t whitePixel[] = { 255, 255, 255, 255 };
+    LLGL::ImageView whiteImageView(LLGL::ImageFormat::RGBA, LLGL::DataType::UInt8, whitePixel, 4);
+    LLGL::TextureDescriptor whiteTexDesc;
+    whiteTexDesc.type = LLGL::TextureType::Texture2D;
+    whiteTexDesc.format = LLGL::Format::RGBA8UNorm;
+    whiteTexDesc.extent = { 1, 1, 1 };
+    return llgl_renderer->CreateTexture(whiteTexDesc, &whiteImageView);
+}
+
+LLGL::Sampler* create_model_sampler(LLGL::RenderSystemPtr& llgl_renderer) {
+    LLGL::SamplerDescriptor modelSamplerDesc;
+    modelSamplerDesc.maxAnisotropy = 8;
+    modelSamplerDesc.addressModeU = LLGL::SamplerAddressMode::Repeat;
+    modelSamplerDesc.addressModeV = LLGL::SamplerAddressMode::Repeat;
+    return llgl_renderer->CreateSampler(modelSamplerDesc);
+}
+
 #ifdef _WIN32
 int SDL_main(int argc, char** argv) {
 #else
 #if defined(__cplusplus) && defined(PLATFORM_IOS)
 extern "C"
 #endif
-    int
-    main(int argc, char* argv[]) {
+    int main(int argc, char* argv[]) {
 #endif
     LLGL::Log::RegisterCallbackStd();
 
@@ -177,156 +250,209 @@ extern "C"
 
     const auto& languages = llgl_renderer->GetRenderingCaps().shadingLanguages;
 
-    // Vertex data structure
-    struct Vertex {
-        float position[2];
-        uint8_t color[4];
-    };
+    // Load 3D model
+    Model model;
+    std::string modelPath = "../model.obj";
 
-    // Vertex data (3 vertices for our triangle)
-    const float s = 0.5f;
-
-    Vertex vertices[] = {
-        { { 0, s }, { 255, 0, 0, 255 } },   // 1st vertex: center-top, red
-        { { s, -s }, { 0, 255, 0, 255 } },  // 2nd vertex: right-bottom, green
-        { { -s, -s }, { 0, 0, 255, 255 } }, // 3rd vertex: left-bottom, blue
-    };
-
-    // Vertex format
-    LLGL::VertexFormat vertexFormat;
-
-    // Append 2D float vector for position attribute
-    vertexFormat.AppendAttribute({ "position", LLGL::Format::RG32Float });
-
-    // Append 3D unsigned byte vector for color
-    vertexFormat.AppendAttribute({ "color", LLGL::Format::RGBA8UNorm });
-
-    // Update stride in case out vertex structure is not 4-byte aligned
-    vertexFormat.SetStride(sizeof(Vertex));
-
-    // Create vertex buffer
-    LLGL::BufferDescriptor vertexBufferDesc;
-    {
-        vertexBufferDesc.size = sizeof(vertices); // Size (in bytes) of the vertex buffer
-        vertexBufferDesc.bindFlags =
-            LLGL::BindFlags::VertexBuffer; // Enables the buffer to be bound to a vertex buffer slot
-        vertexBufferDesc.vertexAttribs = vertexFormat.attributes; // Vertex format layout
+    if (argc > 1) {
+        modelPath = argv[1];
     }
-    LLGL::Buffer* vertexBuffer = llgl_renderer->CreateBuffer(vertexBufferDesc, vertices);
 
-    LLGL::PipelineState* pipeline = create_pipeline(llgl_renderer, llgl_swapChain, languages, vertexFormat, "test");
+    if (!model.load(modelPath, llgl_renderer)) {
+        LLGL::Log::Errorf("Failed to load model: %s\n", modelPath.c_str());
+        LLGL::Log::Printf("Usage: %s [model_path]\n", argv[0]);
+        LLGL::Log::Printf("Creating a default cube...\n");
 
-    struct VertexTex {
-        float position[2];
-        uint8_t color[4];
-        float texCoord[2];
-    };
-
-    // Vertex data (3 vertices for our triangle)
-    // const float s = 0.5f;
-
-    VertexTex verticesTex[] = {
-        { { 0, s + 0.3f }, { 255, 0, 0, 255 }, { 0.5, 0.0 } },   // 1st vertex: center-top, red
-        { { s, -s + 0.3f }, { 0, 255, 0, 255 }, { 0.0, 1.0 } },  // 2nd vertex: right-bottom, green
-        { { -s, -s + 0.3f }, { 0, 0, 255, 255 }, { 1.0, 1.0 } }, // 3rd vertex: left-bottom, blue
-    };
-
-    // Vertex format
-    LLGL::VertexFormat vertexTexFormat;
-
-    vertexTexFormat.AppendAttribute({ "position", LLGL::Format::RG32Float });
-    vertexTexFormat.AppendAttribute({ "color", LLGL::Format::RGBA8UNorm });
-    vertexTexFormat.AppendAttribute({ "texCoord", LLGL::Format::RG32Float });
-
-    // Update stride in case out vertex structure is not 4-byte aligned
-    vertexTexFormat.SetStride(sizeof(VertexTex));
-
-    // Create vertex buffer
-    LLGL::BufferDescriptor vertexTexBufferDesc;
-    {
-        vertexTexBufferDesc.size = sizeof(verticesTex); // Size (in bytes) of the vertex buffer
-        vertexTexBufferDesc.bindFlags =
-            LLGL::BindFlags::VertexBuffer; // Enables the buffer to be bound to a vertex buffer slot
-        vertexTexBufferDesc.vertexAttribs = vertexTexFormat.attributes; // Vertex format layout
+        model = Primitives::createDefaultModel();
     }
-    LLGL::Buffer* vertexTexBuffer = llgl_renderer->CreateBuffer(vertexTexBufferDesc, verticesTex);
 
-    std::vector<std::uint32_t> indices = {
-        0, 1, 2, // Triangle
-    };
-    LLGL::BufferDescriptor bufferDesc;
-    {
-        bufferDesc.size = indices.size() * sizeof(std::uint32_t);
-        bufferDesc.format = LLGL::Format::R32UInt;
-        bufferDesc.bindFlags = LLGL::BindFlags::IndexBuffer;
-    }
-    bufferDesc.debugName = "IndexBuffer";
-    LLGL::Buffer* indexBuffer = llgl_renderer->CreateBuffer(bufferDesc, &indices[0]);
+    model.createBuffers(llgl_renderer);
 
-    LLGL::PipelineLayoutDescriptor layoutDesc;
-    {
-        layoutDesc.bindings = {
-            LLGL::BindingDescriptor{ "colorMap", LLGL::ResourceType::Texture, LLGL::BindFlags::Sampled,
-                                     LLGL::StageFlags::FragmentStage, 0 },
-            LLGL::BindingDescriptor{ "samplerState", LLGL::ResourceType::Sampler, 0, LLGL::StageFlags::FragmentStage,
-                                     1 },
-        };
-        layoutDesc.combinedTextureSamplers = { LLGL::CombinedTextureSamplerDescriptor{ "colorMap", "colorMap",
-                                                                                       "samplerState", 2 } };
-    }
-    LLGL::PipelineLayout* pipelineLayout = llgl_renderer->CreatePipelineLayout(layoutDesc);
+    struct Matrices {
+        Math::Mat4 model;
+        Math::Mat4 view;
+        Math::Mat4 projection;
+    } matrices;
 
-    LLGL::PipelineState* pipeline2 =
-        create_pipeline(llgl_renderer, llgl_swapChain, languages, vertexTexFormat, "test_texture", pipelineLayout);
+    LLGL::Buffer* uniformBuffer = create_uniform_buffer(llgl_renderer, sizeof(Matrices));
 
-    // Load texture
-    LLGL::Texture* texture = LoadTexture("../random.png", llgl_renderer);
+    // Pipeline layout for 3D model rendering (with texture)
+    LLGL::PipelineLayout* modelPipelineLayout = create_texture_pipeline_layout(llgl_renderer);
 
-    LLGL::SamplerDescriptor anisotropySamplerDesc;
-    { anisotropySamplerDesc.maxAnisotropy = 8; }
-    LLGL::Sampler* sampler = llgl_renderer->CreateSampler(anisotropySamplerDesc);
+    // Pipeline layout for 3D model rendering (without texture)
+    LLGL::PipelineLayout* modelNoTexPipelineLayout = create_no_texture_pipeline_layout(llgl_renderer);
+
+    auto modelVertexFormat = model.getVertexFormat();
+
+    LLGL::PipelineState* modelPipeline = create_pipeline(llgl_renderer, llgl_swapChain, languages, modelVertexFormat,
+                                                         "model", modelPipelineLayout, true, LLGL::CullMode::Back);
+
+    LLGL::PipelineState* modelNoTexPipeline =
+        create_pipeline(llgl_renderer, llgl_swapChain, languages, modelVertexFormat, "model_notex",
+                        modelNoTexPipelineLayout, true, LLGL::CullMode::Back);
+
+    // White texture for meshes without a texture
+    LLGL::Texture* whiteTexture = create_white_texture(llgl_renderer);
+
+    // Sampler for model textures
+    LLGL::Sampler* modelSampler = create_model_sampler(llgl_renderer);
+
+    // Create orbit camera
+    OrbitCamera camera;
+    Math::Vec3 modelCenter = model.getCenter();
+    float modelRadius = model.getRadius();
+    camera.setTarget(modelCenter, modelRadius * 2.5f);
+
+    // Model rotation angles (for auto-rotation or manual rotation)
+    float modelRotationY = 0.0f;
+    float modelRotationX = 0.0f;
+    bool autoRotate = false;
 
     auto llgl_cmdBuffer = llgl_renderer->CreateCommandBuffer(LLGL::CommandBufferFlags::ImmediateSubmit);
 
     InitImGui(*surface, llgl_renderer, llgl_swapChain, llgl_cmdBuffer);
 
+    // Set up event callback for camera control
+    surface->SetEventCallback([&camera](const SDL_Event& event) {
+        // Don't process mouse if ImGui wants it
+        if (!ImGui::GetIO().WantCaptureMouse) {
+            switch (event.type) {
+                case SDL_MOUSEBUTTONDOWN:
+                    if (event.button.button == SDL_BUTTON_LEFT) {
+                        camera.onMouseDown(event.button.x, event.button.y);
+                    }
+                    break;
+                case SDL_MOUSEBUTTONUP:
+                    if (event.button.button == SDL_BUTTON_LEFT) {
+                        camera.onMouseUp();
+                    }
+                    break;
+                case SDL_MOUSEMOTION:
+                    camera.onMouseMove(event.motion.x, event.motion.y);
+                    break;
+                case SDL_MOUSEWHEEL:
+                    camera.onMouseWheel(static_cast<float>(event.wheel.y));
+                    break;
+            }
+        }
+    });
+
+    // Main render loop
     while (surface->ProcessEvents(llgl_swapChain)) {
+        // Update matrices
+        float aspect = static_cast<float>(llgl_swapChain->GetResolution().width) /
+                       static_cast<float>(llgl_swapChain->GetResolution().height);
+
+        // Auto-rotation
+        if (autoRotate) {
+            modelRotationY += 0.01f;
+        }
+
+        // Model matrix (rotation around center)
+        matrices.model = Math::Mat4::translate(-modelCenter);
+        matrices.model = Math::Mat4::rotateY(modelRotationY) * matrices.model;
+        matrices.model = Math::Mat4::rotateX(modelRotationX) * matrices.model;
+        matrices.model = Math::Mat4::translate(modelCenter) * matrices.model;
+
+        // View matrix from camera
+        matrices.view = camera.getViewMatrix();
+
+        // Projection matrix
+        matrices.projection = Math::Mat4::perspective(3.14159f / 4.0f, aspect, 0.1f, 1000.0f);
+
+        // Update uniform buffer
+        llgl_renderer->WriteBuffer(*uniformBuffer, 0, &matrices, sizeof(Matrices));
+
         // Rendering
         llgl_cmdBuffer->Begin();
         {
             // Set viewport and scissor rectangle
             llgl_cmdBuffer->SetViewport(llgl_swapChain->GetResolution());
 
-            // Set vertex buffer
-
             llgl_cmdBuffer->BeginRenderPass(*llgl_swapChain);
             {
-                llgl_cmdBuffer->Clear(LLGL::ClearFlags::Color, LLGL::ClearValue{ 0.0f, 0.2f, 0.2f, 1.0f });
+                // Clear with depth
+                llgl_cmdBuffer->Clear(LLGL::ClearFlags::ColorDepth, LLGL::ClearValue{ 0.1f, 0.1f, 0.15f, 1.0f });
 
-                llgl_cmdBuffer->SetVertexBuffer(*vertexBuffer);
+                // Render model meshes
+                const auto& meshes = model.getMeshes();
+                const auto& materials = model.getMaterials();
+                for (size_t i = 0; i < meshes.size(); i++) {
+                    const auto& mesh = meshes[i];
 
-                // Set graphics pipeline
-                llgl_cmdBuffer->SetPipelineState(*pipeline);
+                    // Check if mesh has texture
+                    bool hasTexture = false;
+                    LLGL::Texture* meshTexture = whiteTexture;
 
-                // Draw triangle with 3 vertices
-                llgl_cmdBuffer->Draw(3, 0);
+                    if (mesh.materialIndex < materials.size()) {
+                        const auto& material = materials[mesh.materialIndex];
+                        if (material.hasTexture && material.diffuseTexture) {
+                            hasTexture = true;
+                            meshTexture = material.diffuseTexture;
+                        }
+                    }
 
-                llgl_cmdBuffer->SetVertexBuffer(*vertexTexBuffer);
-                llgl_cmdBuffer->SetIndexBuffer(*indexBuffer);
+                    // Set appropriate pipeline
+                    if (hasTexture) {
+                        llgl_cmdBuffer->SetPipelineState(*modelPipeline);
+                        llgl_cmdBuffer->SetResource(0, *uniformBuffer);
+                        llgl_cmdBuffer->SetResource(1, *meshTexture);
+                        llgl_cmdBuffer->SetResource(2, *modelSampler);
+                    } else {
+                        llgl_cmdBuffer->SetPipelineState(*modelNoTexPipeline);
+                        llgl_cmdBuffer->SetResource(0, *uniformBuffer);
+                    }
 
-                llgl_cmdBuffer->SetPipelineState(*pipeline2);
-
-                llgl_cmdBuffer->SetResource(0, *texture);
-                llgl_cmdBuffer->SetResource(1, *sampler);
-                llgl_cmdBuffer->DrawIndexed(3, 0);
+                    // Draw mesh
+                    llgl_cmdBuffer->SetVertexBuffer(*mesh.vertexBuffer);
+                    llgl_cmdBuffer->SetIndexBuffer(*mesh.indexBuffer);
+                    llgl_cmdBuffer->DrawIndexed(mesh.indexCount(), 0);
+                }
 
                 // GUI Rendering with ImGui library
-                // Start the Dear ImGui frame
                 NewFrameImGui(llgl_renderer, llgl_cmdBuffer);
                 ImGui::NewFrame();
 
-                // Show ImGui's demo window
-                ImGui::ShowDemoWindow();
+                // Model viewer controls
+                ImGui::Begin("Model Viewer");
+                ImGui::Text("Model: %s", modelPath.c_str());
+                ImGui::Text("Meshes: %zu", meshes.size());
+                ImGui::Text("Materials: %zu", materials.size());
+                ImGui::Separator();
+
+                ImGui::Text("Camera Controls:");
+                ImGui::Text("  - Left click + drag: Rotate view");
+                ImGui::Text("  - Mouse wheel: Zoom in/out");
+                ImGui::Separator();
+
+                ImGui::Checkbox("Auto Rotate", &autoRotate);
+                ImGui::SliderFloat("Rotation Y", &modelRotationY, -3.14159f, 3.14159f);
+                ImGui::SliderFloat("Rotation X", &modelRotationX, -1.5f, 1.5f);
+                ImGui::Separator();
+
+                ImGui::Text("Camera:");
+                float camDistance = camera.getDistance();
+                float camYaw = camera.getYaw();
+                float camPitch = camera.getPitch();
+                if (ImGui::SliderFloat("Distance", &camDistance, 0.1f, modelRadius * 10.0f)) {
+                    camera.setDistance(camDistance);
+                }
+                if (ImGui::SliderFloat("Yaw", &camYaw, -3.14159f, 3.14159f)) {
+                    camera.setYaw(camYaw);
+                }
+                if (ImGui::SliderFloat("Pitch", &camPitch, -1.5f, 1.5f)) {
+                    camera.setPitch(camPitch);
+                }
+
+                if (ImGui::Button("Reset Camera")) {
+                    camera.setTarget(modelCenter, modelRadius * 2.5f);
+                    camera.setYaw(0.0f);
+                    camera.setPitch(0.0f);
+                    modelRotationX = 0.0f;
+                    modelRotationY = 0.0f;
+                }
+
+                ImGui::End();
 
                 // GUI Rendering
                 ImGui::Render();
@@ -340,6 +466,8 @@ extern "C"
         llgl_swapChain->Present();
     }
 
+    // Cleanup
+    model.release(llgl_renderer);
     ShutdownImGui(llgl_renderer);
     LLGL::RenderSystem::Unload(std::move(llgl_renderer));
     SDL_Quit();
