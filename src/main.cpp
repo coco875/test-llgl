@@ -66,8 +66,9 @@ LLGL::PipelineState* create_pipeline(LLGL::RenderSystemPtr& llgl_renderer, LLGL:
     LLGL::Shader* fragShader = llgl_renderer->CreateShader(fragShaderDesc);
 
     for (LLGL::Shader* shader : { vertShader, fragShader }) {
-        if (const LLGL::Report* report = shader->GetReport())
+        if (const LLGL::Report* report = shader->GetReport()) {
             LLGL::Log::Errorf("%s", report->GetText());
+        }
     }
 
     // Create graphics pipeline
