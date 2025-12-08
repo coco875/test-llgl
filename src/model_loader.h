@@ -93,11 +93,12 @@ class Model {
         return directory_;
     }
 
+    void calculateBounds();
+
   private:
     void processNode(aiNode* node, const aiScene* scene);
     Mesh processMesh(aiMesh* mesh, const aiScene* scene);
     void loadMaterials(const aiScene* scene, LLGL::RenderSystemPtr& renderer);
-    void calculateBounds();
 
     std::vector<Mesh> meshes_;
     std::vector<Material> materials_;

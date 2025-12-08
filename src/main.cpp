@@ -265,6 +265,7 @@ extern "C"
         LLGL::Log::Printf("Creating a default cube...\n");
 
         model = Primitives::createDefaultModel();
+        model.calculateBounds();
     }
 
     model.createBuffers(llgl_renderer);
