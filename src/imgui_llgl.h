@@ -10,8 +10,8 @@ void Imgui_Metal_llgl_Init(LLGL::RenderSystemPtr& renderer);
 
 void InitImGui(SDLSurface& wnd, LLGL::RenderSystemPtr& renderer, LLGL::SwapChain* swapChain,
                LLGL::CommandBuffer* cmdBuffer);
-void NewFrameImGui(LLGL::RenderSystemPtr& renderer, LLGL::CommandBuffer* cmdBuffer);
-void RenderImGui(ImDrawData* data, LLGL::RenderSystemPtr& renderer, LLGL::CommandBuffer* llgl_cmdBuffer);
-void ShutdownImGui(LLGL::RenderSystemPtr& renderer);
+void NewFrameImGui();
+void RenderImGui(ImDrawData* data);
+void ShutdownImGui();
 
 #endif
