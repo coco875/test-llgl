@@ -144,6 +144,11 @@ bool SDLSurface::ProcessEvents(LLGL::SwapChain* swapChain) {
             swapChain->ResizeBuffers(size_);
         }
         ImGui_ImplSDL2_ProcessEvent(&event);
+        
+        // Call custom event callback if registered
+        if (eventCallback_) {
+            eventCallback_(event);
+        }
     }
     return true;
 }
