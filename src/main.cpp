@@ -412,7 +412,7 @@ extern "C"
                 }
 
                 // GUI Rendering with ImGui library
-                NewFrameImGui(llgl_renderer, llgl_cmdBuffer);
+                NewFrameImGui();
                 ImGui::NewFrame();
 
                 // Model viewer controls
@@ -458,7 +458,7 @@ extern "C"
 
                 // GUI Rendering
                 ImGui::Render();
-                RenderImGui(ImGui::GetDrawData(), llgl_renderer, llgl_cmdBuffer);
+                RenderImGui(ImGui::GetDrawData());
             }
             llgl_cmdBuffer->EndRenderPass();
         }
@@ -470,7 +470,7 @@ extern "C"
 
     // Cleanup
     model.release(llgl_renderer);
-    ShutdownImGui(llgl_renderer);
+    ShutdownImGui();
     LLGL::RenderSystem::Unload(std::move(llgl_renderer));
     SDL_Quit();
 
