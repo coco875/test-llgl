@@ -156,6 +156,12 @@ include_directories(${llgl_SOURCE_DIR}/include)
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${llgl_SOURCE_DIR})
 
+# Add shader_translate library before finding glslang/spirv-cross
+# (the library handles its own dependency linking)
+add_subdirectory(libs/shader_translate)
+target_include_directories(${PROJECT_NAME} PRIVATE ${SHADER_TRANSLATE_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} PRIVATE shader_translate)
+
 find_package(glslang REQUIRED)
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${glslang_SOURCE_DIR}/glslang/Public)

@@ -3,6 +3,7 @@
 
 #include "imgui_impl_llgl.h"
 #include "imgui.h"
+#include "imgui_shaders.h"
 
 #ifndef IMGUI_DISABLE
 
@@ -12,8 +13,6 @@
 #include <cstring>
 #include <vector>
 #include <variant>
-
-#include "shader_translation.h"
 
 // LLGL backend data
 struct ImGui_ImplLLGL_Data {
@@ -54,46 +53,75 @@ static ImGui_ImplLLGL_Data* ImGui_ImplLLGL_GetBackendData() {
     return ImGui::GetCurrentContext() ? (ImGui_ImplLLGL_Data*) ImGui::GetIO().BackendRendererUserData : nullptr;
 }
 
-// ImGui shaders in GLSL 450 (Vulkan-style, will be translated by shader_translation)
-static const char* g_VertexShaderGLSL = R"(
-#version 450 core
+// Helper functions to detect shading language
+// Note: LLGL uses bitmask encoding where high bits indicate language type and low bits indicate version
+// We need to mask out the version bits before comparing the language type
+static constexpr int LANG_TYPE_MASK = ~static_cast<int>(LLGL::ShadingLanguage::VersionBitmask);
 
-layout(location = 0) in vec2 aPos;
-layout(location = 1) in vec2 aUV;
-layout(location = 2) in vec4 aColor;
-
-layout(std140, binding = 0) uniform Matrices {
-    mat4 ProjectionMatrix;
-};
-
-layout(location = 0) out vec2 vUV;
-layout(location = 1) out vec4 vColor;
-
-out gl_PerVertex {
-    vec4 gl_Position;
-};
-
-void main() {
-    vUV = aUV;
-    vColor = aColor;
-    gl_Position = ProjectionMatrix * vec4(aPos, 0.0, 1.0);
+static bool is_spirv(const std::vector<LLGL::ShadingLanguage>& languages, int& version) {
+    version = 0;
+    const int spirvBase = static_cast<int>(LLGL::ShadingLanguage::SPIRV);
+    for (const auto& language : languages) {
+        int langValue = static_cast<int>(language);
+        if ((langValue & LANG_TYPE_MASK) == spirvBase) {
+            version = langValue & static_cast<int>(LLGL::ShadingLanguage::VersionBitmask);
+            return true;
+        }
+    }
+    return false;
 }
-)";
 
-static const char* g_FragmentShaderGLSL = R"(
-#version 450 core
-
-layout(location = 0) in vec2 vUV;
-layout(location = 1) in vec4 vColor;
-
-layout(binding = 1) uniform sampler2D colorMap;
-
-layout(location = 0) out vec4 outColor;
-
-void main() {
-    outColor = vColor * texture(colorMap, vUV);
+static bool is_metal(const std::vector<LLGL::ShadingLanguage>& languages, int& version) {
+    version = 0;
+    const int metalBase = static_cast<int>(LLGL::ShadingLanguage::Metal);
+    for (const auto& language : languages) {
+        int langValue = static_cast<int>(language);
+        if ((langValue & LANG_TYPE_MASK) == metalBase) {
+            version = langValue & static_cast<int>(LLGL::ShadingLanguage::VersionBitmask);
+            return true;
+        }
+    }
+    return false;
 }
-)";
+
+static bool is_hlsl(const std::vector<LLGL::ShadingLanguage>& languages, int& version) {
+    version = 0;
+    const int hlslBase = static_cast<int>(LLGL::ShadingLanguage::HLSL);
+    for (const auto& language : languages) {
+        int langValue = static_cast<int>(language);
+        if ((langValue & LANG_TYPE_MASK) == hlslBase) {
+            version = langValue & static_cast<int>(LLGL::ShadingLanguage::VersionBitmask);
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool is_glsl(const std::vector<LLGL::ShadingLanguage>& languages, int& version) {
+    version = 0;
+    const int glslBase = static_cast<int>(LLGL::ShadingLanguage::GLSL);
+    for (const auto& language : languages) {
+        int langValue = static_cast<int>(language);
+        if ((langValue & LANG_TYPE_MASK) == glslBase) {
+            version = langValue & static_cast<int>(LLGL::ShadingLanguage::VersionBitmask);
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool is_glsles(const std::vector<LLGL::ShadingLanguage>& languages, int& version) {
+    version = 0;
+    const int esslBase = static_cast<int>(LLGL::ShadingLanguage::ESSL);
+    for (const auto& language : languages) {
+        int langValue = static_cast<int>(language);
+        if ((langValue & LANG_TYPE_MASK) == esslBase) {
+            version = langValue & static_cast<int>(LLGL::ShadingLanguage::VersionBitmask);
+            return true;
+        }
+    }
+    return false;
+}
 
 static LLGL::VertexFormat ImGui_ImplLLGL_GetVertexFormat() {
     LLGL::VertexFormat vertexFormat;
@@ -117,12 +145,77 @@ static bool ImGui_ImplLLGL_CreateShaders() {
     // Setup vertex format
     LLGL::VertexFormat vertexFormat = ImGui_ImplLLGL_GetVertexFormat();
 
-    // Create shader descriptors using shader_translation
+    // Create shader descriptors
     LLGL::ShaderDescriptor vertShaderDesc, fragShaderDesc;
 
-    // Use shader_translation to convert GLSL 450 to the appropriate language
-    generate_shader_from_string(vertShaderDesc, fragShaderDesc, languages, vertexFormat, g_VertexShaderGLSL,
-                                g_FragmentShaderGLSL, bd->VertexShaderData, bd->FragmentShaderData);
+    // Select appropriate shader based on supported shading language
+    int version = 0;
+    if (is_spirv(languages, version)) {
+        // Vulkan/SPIRV - use pre-compiled SPIR-V binary
+        std::vector<uint32_t> vertSpirv(
+            reinterpret_cast<const uint32_t*>(g_ImGuiVertexShader_SPIRV),
+            reinterpret_cast<const uint32_t*>(g_ImGuiVertexShader_SPIRV + g_ImGuiVertexShader_SPIRV_Size));
+        std::vector<uint32_t> fragSpirv(
+            reinterpret_cast<const uint32_t*>(g_ImGuiFragmentShader_SPIRV),
+            reinterpret_cast<const uint32_t*>(g_ImGuiFragmentShader_SPIRV + g_ImGuiFragmentShader_SPIRV_Size));
+
+        bd->VertexShaderData = vertSpirv;
+        vertShaderDesc = { LLGL::ShaderType::Vertex, reinterpret_cast<const char*>(g_ImGuiVertexShader_SPIRV) };
+        vertShaderDesc.sourceType = LLGL::ShaderSourceType::BinaryBuffer;
+        vertShaderDesc.sourceSize = g_ImGuiVertexShader_SPIRV_Size;
+
+        bd->FragmentShaderData = fragSpirv;
+        fragShaderDesc = { LLGL::ShaderType::Fragment, reinterpret_cast<const char*>(g_ImGuiFragmentShader_SPIRV) };
+        fragShaderDesc.sourceType = LLGL::ShaderSourceType::BinaryBuffer;
+        fragShaderDesc.sourceSize = g_ImGuiFragmentShader_SPIRV_Size;
+    } else if (is_metal(languages, version)) {
+        // Metal Shading Language
+        bd->VertexShaderData = std::string(g_ImGuiVertexShader_Metal);
+        vertShaderDesc = { LLGL::ShaderType::Vertex, std::get<std::string>(bd->VertexShaderData).c_str() };
+        vertShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;
+        vertShaderDesc.entryPoint = "main0";
+        vertShaderDesc.profile = "2.1";
+
+        bd->FragmentShaderData = std::string(g_ImGuiFragmentShader_Metal);
+        fragShaderDesc = { LLGL::ShaderType::Fragment, std::get<std::string>(bd->FragmentShaderData).c_str() };
+        fragShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;
+        fragShaderDesc.entryPoint = "main0";
+        fragShaderDesc.profile = "2.1";
+    } else if (is_hlsl(languages, version)) {
+        // HLSL shaders
+        bd->VertexShaderData = std::string(g_ImGuiVertexShader_HLSL);
+        vertShaderDesc = { LLGL::ShaderType::Vertex, std::get<std::string>(bd->VertexShaderData).c_str() };
+        vertShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;
+        vertShaderDesc.entryPoint = "main";
+        vertShaderDesc.profile = "vs_5_0";
+
+        bd->FragmentShaderData = std::string(g_ImGuiFragmentShader_HLSL);
+        fragShaderDesc = { LLGL::ShaderType::Fragment, std::get<std::string>(bd->FragmentShaderData).c_str() };
+        fragShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;
+        fragShaderDesc.entryPoint = "main";
+        fragShaderDesc.profile = "ps_5_0";
+    } else if (is_glsl(languages, version)) {
+        // OpenGL GLSL shaders
+        bd->VertexShaderData = std::string(g_ImGuiVertexShader_GLSL);
+        vertShaderDesc = { LLGL::ShaderType::Vertex, std::get<std::string>(bd->VertexShaderData).c_str() };
+        vertShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;
+
+        bd->FragmentShaderData = std::string(g_ImGuiFragmentShader_GLSL);
+        fragShaderDesc = { LLGL::ShaderType::Fragment, std::get<std::string>(bd->FragmentShaderData).c_str() };
+        fragShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;
+    } else if (is_glsles(languages, version)) {
+        // OpenGL ES GLSL shaders
+        bd->VertexShaderData = std::string(g_ImGuiVertexShader_GLSL_ES);
+        vertShaderDesc = { LLGL::ShaderType::Vertex, std::get<std::string>(bd->VertexShaderData).c_str() };
+        vertShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;
+
+        bd->FragmentShaderData = std::string(g_ImGuiFragmentShader_GLSL_ES);
+        fragShaderDesc = { LLGL::ShaderType::Fragment, std::get<std::string>(bd->FragmentShaderData).c_str() };
+        fragShaderDesc.sourceType = LLGL::ShaderSourceType::CodeString;
+    } else {
+        LLGL::Log::Errorf("ImGui LLGL: Unsupported shading language\n");
+        return false;
+    }
 
     // Set vertex attributes
     vertShaderDesc.vertex.inputAttribs = vertexFormat.attributes;

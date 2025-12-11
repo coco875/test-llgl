@@ -198,6 +198,58 @@ LLGL::Sampler* create_model_sampler(LLGL::RenderSystemPtr& llgl_renderer) {
     return llgl_renderer->CreateSampler(modelSamplerDesc);
 }
 
+void RenderImGuiUI(const std::string& modelPath, const std::vector<Mesh>& meshes,
+                   const std::vector<Material>& materials, bool& autoRotate, float& modelRotationY,
+                   float& modelRotationX, OrbitCamera& camera, const Math::Vec3& modelCenter, float modelRadius) {
+    NewFrameImGui();
+    ImGui::NewFrame();
+
+    // Model viewer controls
+    ImGui::Begin("Model Viewer");
+    ImGui::Text("Model: %s", modelPath.c_str());
+    ImGui::Text("Meshes: %zu", meshes.size());
+    ImGui::Text("Materials: %zu", materials.size());
+    ImGui::Separator();
+
+    ImGui::Text("Camera Controls:");
+    ImGui::Text("  - Left click + drag: Rotate view");
+    ImGui::Text("  - Mouse wheel: Zoom in/out");
+    ImGui::Separator();
+
+    ImGui::Checkbox("Auto Rotate", &autoRotate);
+    ImGui::SliderFloat("Rotation Y", &modelRotationY, -3.14159f, 3.14159f);
+    ImGui::SliderFloat("Rotation X", &modelRotationX, -1.5f, 1.5f);
+    ImGui::Separator();
+
+    ImGui::Text("Camera:");
+    float camDistance = camera.getDistance();
+    float camYaw = camera.getYaw();
+    float camPitch = camera.getPitch();
+    if (ImGui::SliderFloat("Distance", &camDistance, 0.1f, modelRadius * 10.0f)) {
+        camera.setDistance(camDistance);
+    }
+    if (ImGui::SliderFloat("Yaw", &camYaw, -3.14159f, 3.14159f)) {
+        camera.setYaw(camYaw);
+    }
+    if (ImGui::SliderFloat("Pitch", &camPitch, -1.5f, 1.5f)) {
+        camera.setPitch(camPitch);
+    }
+
+    if (ImGui::Button("Reset Camera")) {
+        camera.setTarget(modelCenter, modelRadius * 2.5f);
+        camera.setYaw(0.0f);
+        camera.setPitch(0.0f);
+        modelRotationX = 0.0f;
+        modelRotationY = 0.0f;
+    }
+
+    ImGui::End();
+
+    // Render ImGui
+    ImGui::Render();
+    RenderImGui(ImGui::GetDrawData());
+}
+
 #ifdef _WIN32
 int SDL_main(int argc, char** argv) {
 #else
@@ -208,7 +260,7 @@ extern "C"
 #endif
     LLGL::Log::RegisterCallbackStd();
 
-    int rendererID = LLGL::RendererID::OpenGL;
+    int rendererID = LLGL::RendererID::Metal;
 
 #ifdef LLGL_OS_LINUX
     SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11");
@@ -411,54 +463,9 @@ extern "C"
                     llgl_cmdBuffer->DrawIndexed(mesh.indexCount(), 0);
                 }
 
-                // GUI Rendering with ImGui library
-                NewFrameImGui();
-                ImGui::NewFrame();
-
-                // Model viewer controls
-                ImGui::Begin("Model Viewer");
-                ImGui::Text("Model: %s", modelPath.c_str());
-                ImGui::Text("Meshes: %zu", meshes.size());
-                ImGui::Text("Materials: %zu", materials.size());
-                ImGui::Separator();
-
-                ImGui::Text("Camera Controls:");
-                ImGui::Text("  - Left click + drag: Rotate view");
-                ImGui::Text("  - Mouse wheel: Zoom in/out");
-                ImGui::Separator();
-
-                ImGui::Checkbox("Auto Rotate", &autoRotate);
-                ImGui::SliderFloat("Rotation Y", &modelRotationY, -3.14159f, 3.14159f);
-                ImGui::SliderFloat("Rotation X", &modelRotationX, -1.5f, 1.5f);
-                ImGui::Separator();
-
-                ImGui::Text("Camera:");
-                float camDistance = camera.getDistance();
-                float camYaw = camera.getYaw();
-                float camPitch = camera.getPitch();
-                if (ImGui::SliderFloat("Distance", &camDistance, 0.1f, modelRadius * 10.0f)) {
-                    camera.setDistance(camDistance);
-                }
-                if (ImGui::SliderFloat("Yaw", &camYaw, -3.14159f, 3.14159f)) {
-                    camera.setYaw(camYaw);
-                }
-                if (ImGui::SliderFloat("Pitch", &camPitch, -1.5f, 1.5f)) {
-                    camera.setPitch(camPitch);
-                }
-
-                if (ImGui::Button("Reset Camera")) {
-                    camera.setTarget(modelCenter, modelRadius * 2.5f);
-                    camera.setYaw(0.0f);
-                    camera.setPitch(0.0f);
-                    modelRotationX = 0.0f;
-                    modelRotationY = 0.0f;
-                }
-
-                ImGui::End();
-
-                // GUI Rendering
-                ImGui::Render();
-                RenderImGui(ImGui::GetDrawData());
+                // GUI Rendering with ImGui
+                RenderImGuiUI(modelPath, meshes, materials, autoRotate, modelRotationY, modelRotationX, camera,
+                              modelCenter, modelRadius);
             }
             llgl_cmdBuffer->EndRenderPass();
         }
